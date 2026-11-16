@@ -31,6 +31,9 @@ namespace TheAlas.Player
 
         void Start() => SetCursorCaptured(true);
 
+        // Dimatikan saat ronde selesai, supaya kursor bebas untuk layar akhir.
+        void OnDisable() => SetCursorCaptured(false);
+
         void Update()
         {
             HandleCursorCapture();

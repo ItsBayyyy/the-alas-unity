@@ -34,8 +34,12 @@ namespace TheAlas.Player
         [SerializeField] float regenBase = 18f;
         [SerializeField] float regenLossPerLoad = 1.2f;
         [SerializeField] float regenMin = 6f;
+        [Tooltip("Pemulihan stamina saat bergerak dikali angka ini")]
+        [SerializeField] float regenWhileMovingFactor = 0.7f;
         [Tooltip("Setelah stamina habis, lari baru bisa lagi saat stamina mencapai nilai ini")]
-        [SerializeField] float exhaustionRecoverAt = 25f;
+        [SerializeField] float exhaustionRecoverAt = 35f;
+        [Tooltip("Batas kecepatan saat kelelahan (m/s)")]
+        [SerializeField] float exhaustedSpeedCap = 2.1f;
 
         [Header("Lompat")]
         [Tooltip("Dipilih supaya batang tumbang 0,45 m tidak terlewati di atas sekitar 3 unit beban")]
@@ -44,6 +48,8 @@ namespace TheAlas.Player
         [SerializeField] float jumpCostBase = 10f;
         [SerializeField] float jumpCostPerLoad = 2f;
         [SerializeField] float gravity = -20f;
+        [Tooltip("Waktu di udara minimum supaya sentuhan tanah dihitung mendarat (bukan sekadar tersandung)")]
+        [SerializeField] float minAirTimeForLanding = 0.25f;
 
         [Header("Jongkok")]
         [SerializeField] float standHeight = 1.8f;
@@ -56,7 +62,7 @@ namespace TheAlas.Player
         PlayerInputReader input;
         Vector3 horizontalVelocity;
         float verticalVelocity;
-        bool wasGrounded;
+        float airTime;
 
         public event Action Jumped;
         /// <summary>Dipanggil saat menyentuh tanah lagi, dengan kecepatan jatuh (m/s, positif).</summary>
@@ -94,20 +100,23 @@ namespace TheAlas.Player
 
             if (input.CrouchPressed) ToggleCrouch();
 
+            bool moving = moveInput.sqrMagnitude > 0.01f;
             bool wantsRun = input.SprintHeld && moveInput.y > 0.1f && !IsCrouching;
-            UpdateStamina(wantsRun, dt);
+            UpdateStamina(wantsRun, moving, dt);
             UpdateHorizontal(moveInput, dt);
             UpdateVertical(dt);
 
+            float fallSpeed = -verticalVelocity;
             controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * dt);
 
-            DetectLanding();
+            DetectLanding(fallSpeed, dt);
             UpdateCrouchTransition(dt);
         }
 
         void UpdateHorizontal(Vector2 moveInput, float dt)
         {
             float baseSpeed = IsCrouching ? crouchSpeed : IsRunning ? runSpeed : walkSpeed;
+            if (IsExhausted) baseSpeed = Mathf.Min(baseSpeed, exhaustedSpeedCap);
             Vector3 wish = transform.right * moveInput.x + transform.forward * moveInput.y;
             Vector3 target = Vector3.ClampMagnitude(wish, 1f) * (baseSpeed * SpeedMultiplier);
             horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, target, acceleration * dt);
@@ -132,15 +141,20 @@ namespace TheAlas.Player
             Jumped?.Invoke();
         }
 
-        void DetectLanding()
+        void DetectLanding(float fallSpeed, float dt)
         {
-            bool grounded = controller.isGrounded;
-            if (grounded && !wasGrounded)
-                Landed?.Invoke(-controller.velocity.y);
-            wasGrounded = grounded;
+            if (!controller.isGrounded)
+            {
+                airTime += dt;
+                return;
+            }
+
+            if (airTime >= minAirTimeForLanding)
+                Landed?.Invoke(fallSpeed);
+            airTime = 0f;
         }
 
-        void UpdateStamina(bool wantsRun, float dt)
+        void UpdateStamina(bool wantsRun, bool moving, float dt)
         {
             if (IsExhausted && Stamina >= exhaustionRecoverAt)
                 IsExhausted = false;
@@ -160,6 +174,7 @@ namespace TheAlas.Player
             else
             {
                 float regen = Mathf.Max(regenMin, regenBase - regenLossPerLoad * load);
+                if (moving) regen *= regenWhileMovingFactor;
                 Stamina = Mathf.Min(maxStamina, Stamina + regen * dt);
             }
         }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using TheAlas.DebugTools;
 using TheAlas.Player;
 using TheAlas.World;
 using UnityEditor;
@@ -22,10 +21,10 @@ namespace TheAlas.EditorTools
     /// </summary>
     public static class GreyboxBuilder
     {
-        const string Root = "Assets/_Project";
+        internal const string Root = "Assets/_Project";
         const string MaterialDir = Root + "/Art/Materials/Greybox";
-        const string PrefabDir = Root + "/Prefabs";
-        const string SceneDir = Root + "/Scenes";
+        internal const string PrefabDir = Root + "/Prefabs";
+        internal const string SceneDir = Root + "/Scenes";
         const string ScenePath = SceneDir + "/Hutan.unity";
         const string LightingPath = SceneDir + "/Hutan_Lighting.lighting";
 
@@ -37,7 +36,7 @@ namespace TheAlas.EditorTools
         // Utara = +Z. Mobil di tepi utara, makhluk mulai di ujung selatan sekitar 140 m dari pemain.
         static readonly Vector3 CarPosition = new(0f, 0f, 72f);
         static readonly Vector3 PlayerSpawn = new(3.5f, 0f, 67f);
-        static readonly Vector3 CreatureSpawn = new(0f, 0f, -68f);
+        internal static readonly Vector3 CreatureSpawn = new(0f, 0f, -68f);
 
         static readonly Vector3 RiverCenter = new(0f, 0f, -52f);
         static readonly Vector2 RiverSize = new(64f, 7f);
@@ -67,10 +66,11 @@ namespace TheAlas.EditorTools
             new("KaliKering", RiverCenter, 0f), // area persegi panjang, dicek terpisah
         };
 
-        class Palette
+        internal class Palette
         {
             public Material Ground, Trunk, PineLeaves, TeakLeaves, Bush, Log, Stone, Gravel;
             public Material CarBody, CarGlass, Tire, CabinGlow, Wood, Thatch, StoneWall, WellHole, Grave, Root;
+            public Material ItemPart, CreatureBody, CreatureEye;
         }
 
         [MenuItem("Tools/The Alas/Bangun Greybox Hutan")]
@@ -91,8 +91,10 @@ namespace TheAlas.EditorTools
             foreach (var sub in new[] { "Player", "Vehicle", "Environment", "Landmarks" })
                 EnsureFolder($"{PrefabDir}/{sub}");
 
+            GameplaySetup.EnsureLayers();
             var palette = CreatePalette();
             var prefabs = CreatePrefabs(palette);
+            GameplaySetup.ConfigurePrefabs(prefabs, palette);
 
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             SetupLighting();
@@ -113,11 +115,9 @@ namespace TheAlas.EditorTools
             MarkStatic(landmarks);
 
             var gameplay = new GameObject("Gameplay").transform;
-            Spawn(prefabs["Car"], CarPosition, Quaternion.Euler(0f, 90f, 0f), gameplay);
-            Spawn(prefabs["Player"], PlayerSpawn, Quaternion.Euler(0f, 180f, 0f), gameplay);
-            var creatureSpawn = new GameObject("CreatureSpawn").transform;
-            creatureSpawn.SetParent(gameplay, false);
-            creatureSpawn.position = CreatureSpawn;
+            var car = Spawn(prefabs["Car"], CarPosition, Quaternion.Euler(0f, 90f, 0f), gameplay);
+            var player = Spawn(prefabs["Player"], PlayerSpawn, Quaternion.Euler(0f, 180f, 0f), gameplay);
+            GameplaySetup.PopulateScene(prefabs, gameplay, player, car);
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -148,9 +148,13 @@ namespace TheAlas.EditorTools
             WellHole = Mat("WellHole", "#050505"),
             Grave = Mat("Grave", "#8A867A"),
             Root = Mat("Root", "#2E241A"),
+            // Kuning lentera untuk barang wajib (palet GDD), sedikit menyala supaya terlihat di gelap.
+            ItemPart = Mat("ItemPart", "#E0A63C", emission: 0.6f),
+            CreatureBody = Mat("CreatureBody", "#121410"),
+            CreatureEye = Mat("CreatureEye", "#000000", emission: 1f),
         };
 
-        static Material Mat(string name, string hex, float emission = 0f)
+        internal static Material Mat(string name, string hex, float emission = 0f)
         {
             string path = $"{MaterialDir}/M_Greybox_{name}.mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -193,7 +197,7 @@ namespace TheAlas.EditorTools
         /// Struktur setiap prefab: root (pivot di tanah, berisi komponen gameplay) → "Model" (visual).
         /// Artis cukup mengganti isi "Model" dengan mesh final.
         /// </summary>
-        static GameObject EnsurePrefab(string relativePath, Action<GameObject, Transform> build)
+        internal static GameObject EnsurePrefab(string relativePath, Action<GameObject, Transform> build)
         {
             string path = $"{PrefabDir}/{relativePath}.prefab";
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -224,11 +228,6 @@ namespace TheAlas.EditorTools
             controller.skinWidth = 0.04f;
             controller.slopeLimit = 50f;
 
-            root.AddComponent<PlayerInputReader>();
-            var motor = root.AddComponent<PlayerMotor>();
-            var look = root.AddComponent<PlayerLook>();
-            var overlay = root.AddComponent<DebugStatsOverlay>();
-
             var cameraRoot = new GameObject("CameraRoot") { tag = "MainCamera" };
             cameraRoot.transform.SetParent(root.transform, false);
             cameraRoot.transform.localPosition = new Vector3(0f, 1.65f, 0f);
@@ -255,10 +254,6 @@ namespace TheAlas.EditorTools
             spot.shadows = LightShadows.Soft;
             spot.shadowNearPlane = 0.1f;
             flashlight.AddComponent<Flashlight>();
-
-            SetReference(motor, "cameraRoot", cameraRoot.transform);
-            SetReference(look, "cameraRoot", cameraRoot.transform);
-            SetReference(overlay, "motor", motor);
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
@@ -606,7 +601,7 @@ namespace TheAlas.EditorTools
 
         // ---------- Helper ----------
 
-        static GameObject Spawn(GameObject prefab, Vector3 pos, Quaternion rot, Transform parent)
+        internal static GameObject Spawn(GameObject prefab, Vector3 pos, Quaternion rot, Transform parent)
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             go.transform.SetParent(parent, false);
@@ -620,16 +615,16 @@ namespace TheAlas.EditorTools
             go.transform.localScale = Vector3.one * Range(rng, min, max);
         }
 
-        static GameObject Box(Transform parent, string name, Vector3 pos, Vector3 size, Material mat,
+        internal static GameObject Box(Transform parent, string name, Vector3 pos, Vector3 size, Material mat,
             bool collider = true, Vector3 euler = default) =>
             Primitive(parent, PrimitiveType.Cube, name, pos, size, mat, collider, euler);
 
         /// <summary>Silinder dengan ukuran nyata (diameter, tinggi), bukan skala primitive Unity.</summary>
-        static GameObject Cylinder(Transform parent, string name, Vector3 pos, float diameter, float height, Material mat,
+        internal static GameObject Cylinder(Transform parent, string name, Vector3 pos, float diameter, float height, Material mat,
             bool collider = true, Vector3 euler = default) =>
             Primitive(parent, PrimitiveType.Cylinder, name, pos, new Vector3(diameter, height / 2f, diameter), mat, collider, euler);
 
-        static GameObject Primitive(Transform parent, PrimitiveType type, string name, Vector3 pos, Vector3 scale,
+        internal static GameObject Primitive(Transform parent, PrimitiveType type, string name, Vector3 pos, Vector3 scale,
             Material mat, bool collider = true, Vector3 euler = default)
         {
             var go = GameObject.CreatePrimitive(type);
@@ -647,7 +642,7 @@ namespace TheAlas.EditorTools
             return go;
         }
 
-        static void SetReference(Object target, string field, Object value)
+        internal static void SetReference(Object target, string field, Object value)
         {
             var so = new SerializedObject(target);
             so.FindProperty(field).objectReferenceValue = value;
@@ -669,7 +664,7 @@ namespace TheAlas.EditorTools
 
         static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
 
-        static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
             string parent = Path.GetDirectoryName(path).Replace('\\', '/');
