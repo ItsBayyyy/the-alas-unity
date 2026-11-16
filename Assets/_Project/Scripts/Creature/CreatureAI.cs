@@ -94,6 +94,18 @@ namespace TheAlas.Creature
 
         void Start() => EnterWander();
 
+        /// <summary>
+        /// Memindahkan makhluk ke titik navmesh dalam jarak <paramref name="maxSnap"/> dari posisi
+        /// yang diminta, lalu mulai berkeliaran dari sana.
+        /// </summary>
+        public bool TeleportTo(Vector3 position, float maxSnap)
+        {
+            if (!NavMesh.SamplePosition(position, out var hit, maxSnap, NavMesh.AllAreas)) return false;
+            agent.Warp(hit.position);
+            EnterWander();
+            return true;
+        }
+
         void Update()
         {
             var round = RoundManager.Instance;

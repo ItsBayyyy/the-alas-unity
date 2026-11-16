@@ -88,22 +88,19 @@ namespace TheAlas.Player
                 slots[i] = new InputAction($"Slot{i + 1}", binding: $"<Keyboard>/{i + 1}");
         }
 
-        void OnEnable() => SetEnabled(true);
-        void OnDisable() => SetEnabled(false);
+        void OnEnable()
+        {
+            foreach (var action in AllActions()) action.Enable();
+        }
+
+        void OnDisable()
+        {
+            foreach (var action in AllActions()) action.Disable();
+        }
 
         void OnDestroy()
         {
-            foreach (var action in AllActions())
-                action.Dispose();
-        }
-
-        void SetEnabled(bool enabled)
-        {
-            foreach (var action in AllActions())
-            {
-                if (enabled) action.Enable();
-                else action.Disable();
-            }
+            foreach (var action in AllActions()) action.Dispose();
         }
 
         System.Collections.Generic.IEnumerable<InputAction> AllActions()

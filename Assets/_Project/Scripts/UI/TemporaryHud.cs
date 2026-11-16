@@ -26,6 +26,8 @@ namespace TheAlas.UI
         [SerializeField] CreatureAI creature;
         [Tooltip("Suara di atas angka ini membuat makhluk memburu dari 16 m (GDD)")]
         [SerializeField] float loudThreshold = 38f;
+        [Tooltip("Jarak makhluk dari pemain saat dipanggil dengan F2 (playtest)")]
+        [SerializeField] float summonDistance = 20f;
 
         static readonly Color Cream = new Color32(0xE3, 0xD8, 0xBD, 0xFF);
         static readonly Color Lantern = new Color32(0xE0, 0xA6, 0x3C, 0xFF);
@@ -41,13 +43,30 @@ namespace TheAlas.UI
         GUIStyle centered;
         GUIStyle title;
         bool showDebug;
+        float summonNoticeUntil;
 
         void Update()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard != null && keyboard.f1Key.wasPressedThisFrame) showDebug = !showDebug;
+            if (keyboard == null) return;
+            if (keyboard.f1Key.wasPressedThisFrame) showDebug = !showDebug;
+            if (keyboard.f2Key.wasPressedThisFrame && !round.IsOver) SummonCreature();
 #endif
+        }
+
+        /// <summary>
+        /// Alat playtest: memanggil makhluk ke belakang pemain supaya AI bisa diuji tanpa menunggu
+        /// ia berjalan dari ujung selatan. Kalau di belakang di luar peta, dicoba di depan.
+        /// </summary>
+        void SummonCreature()
+        {
+            Vector3 back = Vector3.ProjectOnPlane(-viewPoint.forward, Vector3.up).normalized;
+            Vector3 origin = motor.transform.position;
+            const float maxSnap = 3f; // cukup untuk menghindari pohon, tapi tidak menarik ke tepi peta
+            if (creature.TeleportTo(origin + back * summonDistance, maxSnap) ||
+                creature.TeleportTo(origin - back * summonDistance, maxSnap))
+                summonNoticeUntil = Time.unscaledTime + 2f;
         }
 
         void OnGUI()
@@ -69,6 +88,9 @@ namespace TheAlas.UI
             DrawSlots();
             DrawCrosshairAndPrompt();
             if (showDebug) DrawDebug();
+            if (Time.unscaledTime < summonNoticeUntil)
+                GUI.Label(new Rect(Screen.width / 2f - 250, 100, 500, 24),
+                    $"[F2] Makhluk dipanggil ke {summonDistance:0} m di belakangmu", centered);
         }
 
         void DrawTasks()
@@ -237,7 +259,7 @@ namespace TheAlas.UI
             string text =
                 $"[F1] Makhluk: {creature.State}, jarak {creature.DistanceToPlayer:0.0} m\n" +
                 $"Suara tubuh {noise.BodyNoise:0}, total {noise.Total:0}, permukaan {noise.CurrentSurface}\n" +
-                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s, lompat {motor.JumpHeight:0.00} m";
+                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s, lompat {motor.JumpHeight:0.00} m · F2 panggil makhluk";
             var rect = new Rect(16, 150, 380, 64);
             Fill(rect, Panel);
             GUI.Label(new Rect(rect.x + 8, rect.y + 4, rect.width, rect.height), text, small);

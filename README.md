@@ -6,6 +6,7 @@ Survival horror first-person: kumpulkan empat suku cadang mobil dan kabur dari h
 - Scene utama: `Assets/_Project/Scenes/Hutan.unity`
 - Kontrol: WASD jalan · Shift lari · C jongkok · Spasi lompat · F senter · E ambil / setor / nyalakan mesin · 1–9 atau scroll pilih barang · Q buang (jongkok: letakkan pelan) · G atau klik kanan lempar · Esc lepas kursor · R main lagi di layar akhir
 - F1 (Editor dan development build): status makhluk, jarak, dan suara untuk playtest
+- F2 (Editor dan development build): panggil makhluk ke 20 m di belakang pemain (ke depan kalau belakang di luar peta)
 - HUD saat ini adalah `TemporaryHud` (IMGUI) dan akan diganti HUD dari Citari
 
 ## Struktur folder
