@@ -172,30 +172,38 @@ namespace TheAlas.EditorTools
             SetReferences(intro, "pausedDuringIntro", paused);
             SetReferences(intro, "eyes", eyeRenderers);
 
-            var shots = new[]
+            var establishing = new[]
             {
-                (caption: "Malam itu, mobilmu mogok di tepi alas.", duration: 7f,
-                    // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
-                    from: carPos + new Vector3(-14f, 18f, -32f), to: carPos + new Vector3(-5f, 5f, -11f), look: carPos + Vector3.up, eyes: false),
-                (caption: "Kunci, busi, aki, bensin… semuanya tertinggal di dalam hutan.", duration: 6.5f,
-                    from: carPos + new Vector3(-5.5f, 1.3f, -4.5f), to: carPos + new Vector3(-3.6f, 1.0f, -3.0f), look: carPos + new Vector3(0.5f, 0.8f, 0f), eyes: false),
-                (caption: "Ada yang menunggu di antara pepohonan.", duration: 7f,
-                    from: eye, to: eye + south * 4f + Vector3.down * 0.05f, look: eyesRoot.position, eyes: true),
+                // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
+                new ShotSpec("Malam itu, mobilmu mogok di tepi alas.", 6.5f,
+                    carPos + new Vector3(-14f, 18f, -32f), carPos + new Vector3(-5f, 5f, -11f), carPos + Vector3.up),
+                new ShotSpec("Kunci, busi, aki, bensin… semuanya tertinggal di dalam hutan.", 6f,
+                    carPos + new Vector3(-5.5f, 1.3f, -4.5f), carPos + new Vector3(-3.6f, 1.0f, -3.0f), carPos + new Vector3(0.5f, 0.8f, 0f)),
+                new ShotSpec("Ada yang menunggu di antara pepohonan.", 7f,
+                    eye, eye + south * 4f + Vector3.down * 0.05f, eyesRoot.position) { Eyes = true },
+            };
+
+            // Sudut pandang pemain: terduduk di samping mobil, berdiri, lalu berbalik ke hutan dan
+            // berhenti tepat di pose kamera pemain, sehingga kontrol diserahkan tanpa potongan.
+            float ground = carPos.y;
+            Vector3 playerEye = playerCam.transform.position;
+            Vector3 sitting = new(carPos.x + 5.2f, ground + 0.9f, carPos.z - 2.8f);
+            Vector3 standing = playerEye + new Vector3(0.1f, 0f, 0.4f);
+            Vector3 carSide = carPos + new Vector3(-2f, 1.1f, -0.4f);
+            var pov = new[]
+            {
+                new ShotSpec("Mesinnya mati total.", 5.5f, sitting, sitting + Vector3.up * 0.05f,
+                    sitting + new Vector3(-0.7f, -0.9f, -1.2f), carPos + new Vector3(2f, 1f, -0.4f)) { FadeOut = false, Flashlight = true },
+                new ShotSpec("Satu-satunya jalan pulang: hidupkan lagi mobil ini.", 5f, sitting + Vector3.up * 0.05f, standing,
+                    carPos + new Vector3(2f, 1f, -0.4f), carSide) { FadeIn = false, FadeOut = false, Flashlight = true },
+                new ShotSpec("Dengarkan langkahmu sendiri.", 5f, standing, playerEye,
+                    carSide, playerEye + playerCam.transform.forward * 10f) { FadeIn = false, FadeOut = false, Flashlight = true },
             };
 
             so = new SerializedObject(intro);
-            var shotList = so.FindProperty("shots");
-            shotList.arraySize = shots.Length;
-            for (int i = 0; i < shots.Length; i++)
-            {
-                var s = shotList.GetArrayElementAtIndex(i);
-                s.FindPropertyRelative("caption").stringValue = shots[i].caption;
-                s.FindPropertyRelative("duration").floatValue = shots[i].duration;
-                s.FindPropertyRelative("fromPosition").vector3Value = shots[i].from;
-                s.FindPropertyRelative("toPosition").vector3Value = shots[i].to;
-                s.FindPropertyRelative("lookAt").vector3Value = shots[i].look;
-                s.FindPropertyRelative("showEyes").boolValue = shots[i].eyes;
-            }
+            WriteShots(so.FindProperty("shots"), establishing);
+            WriteShots(so.FindProperty("povShots"), pov);
+            so.FindProperty("povFlashlight").objectReferenceValue = BuildCutsceneFlashlight(camObject.transform, playerCam);
             var titles = so.FindProperty("titleLines");
             titles.arraySize = 2;
             titles.GetArrayElementAtIndex(0).stringValue = "Ia tidak melihat. Ia mendengar.";
@@ -203,6 +211,62 @@ namespace TheAlas.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             camObject.SetActive(false); // cutscene sendiri yang menyalakannya
+        }
+
+        class ShotSpec
+        {
+            public readonly string Caption;
+            public readonly float Duration;
+            public readonly Vector3 From, To, LookAt, LookAtEnd;
+            public bool Eyes, Flashlight, FadeIn = true, FadeOut = true;
+
+            public ShotSpec(string caption, float duration, Vector3 from, Vector3 to, Vector3 lookAt, Vector3 lookAtEnd = default)
+            {
+                Caption = caption;
+                Duration = duration;
+                From = from;
+                To = to;
+                LookAt = lookAt;
+                LookAtEnd = lookAtEnd;
+            }
+        }
+
+        static void WriteShots(SerializedProperty list, ShotSpec[] specs)
+        {
+            list.arraySize = specs.Length;
+            for (int i = 0; i < specs.Length; i++)
+            {
+                var s = list.GetArrayElementAtIndex(i);
+                s.FindPropertyRelative("caption").stringValue = specs[i].Caption;
+                s.FindPropertyRelative("duration").floatValue = specs[i].Duration;
+                s.FindPropertyRelative("fromPosition").vector3Value = specs[i].From;
+                s.FindPropertyRelative("toPosition").vector3Value = specs[i].To;
+                s.FindPropertyRelative("lookAt").vector3Value = specs[i].LookAt;
+                s.FindPropertyRelative("lookAtEnd").vector3Value = specs[i].LookAtEnd;
+                s.FindPropertyRelative("showEyes").boolValue = specs[i].Eyes;
+                s.FindPropertyRelative("fadeIn").boolValue = specs[i].FadeIn;
+                s.FindPropertyRelative("fadeOut").boolValue = specs[i].FadeOut;
+                s.FindPropertyRelative("flashlight").boolValue = specs[i].Flashlight;
+            }
+        }
+
+        /// <summary>Salinan senter pemain di kamera cutscene, supaya shot sudut pandang pemain terlihat sama dengan saat bermain.</summary>
+        static Light BuildCutsceneFlashlight(Transform cutsceneCamera, Camera playerCam)
+        {
+            var source = playerCam.GetComponentInChildren<Light>(true);
+            var light = new GameObject("Flashlight").AddComponent<Light>();
+            light.transform.SetParent(cutsceneCamera, false);
+            light.transform.localPosition = source.transform.localPosition;
+            light.type = source.type;
+            light.range = source.range;
+            light.spotAngle = source.spotAngle;
+            light.innerSpotAngle = source.innerSpotAngle;
+            light.intensity = source.intensity;
+            light.color = source.color;
+            light.shadows = source.shadows;
+            light.shadowNearPlane = source.shadowNearPlane;
+            light.enabled = false;
+            return light;
         }
 
         /// <summary>Hanya sepasang mata, setinggi makhluk, di titik hutan yang tidak terhalang batang pohon.</summary>

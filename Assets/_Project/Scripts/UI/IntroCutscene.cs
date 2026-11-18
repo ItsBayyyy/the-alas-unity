@@ -6,8 +6,9 @@ using UnityEngine.InputSystem;
 namespace TheAlas.UI
 {
     /// <summary>
-    /// Cutscene pembuka tanpa model karakter: beberapa shot kamera dengan teks, sepasang mata menyala
-    /// di kegelapan, lalu judul. Selama cutscene, timer, makhluk, kontrol pemain, dan HUD ditahan.
+    /// Cutscene pembuka tanpa model karakter: shot pengantar dengan teks dan sepasang mata menyala,
+    /// judul, lalu shot dari sudut pandang pemain yang berakhir tepat di pose kamera pemain sehingga
+    /// kontrol diserahkan tanpa potongan. Selama cutscene, timer, makhluk, kontrol pemain, dan HUD ditahan.
     /// Bisa dilewati dengan Spasi atau Enter.
     /// </summary>
     public class IntroCutscene : MonoBehaviour
@@ -20,8 +21,14 @@ namespace TheAlas.UI
             public Vector3 fromPosition;
             public Vector3 toPosition;
             public Vector3 lookAt;
+            [Tooltip("Arah pandang di akhir shot; (0,0,0) berarti sama dengan awal")]
+            public Vector3 lookAtEnd;
             [Tooltip("Tampilkan mata menyala di tengah shot ini")]
             public bool showEyes;
+            public bool fadeIn = true;
+            public bool fadeOut = true;
+            [Tooltip("Senter menyala, untuk shot dari sudut pandang pemain")]
+            public bool flashlight;
         }
 
         [SerializeField] Camera cutsceneCamera;
@@ -29,8 +36,12 @@ namespace TheAlas.UI
         [SerializeField] GameObject playerCamera;
         [Tooltip("Komponen yang dimatikan selama cutscene: kontrol pemain, timer, makhluk, HUD")]
         [SerializeField] Behaviour[] pausedDuringIntro;
+        [Tooltip("Shot pengantar dari luar: mobil dan hutan")]
         [SerializeField] Shot[] shots;
         [SerializeField, TextArea] string[] titleLines;
+        [Tooltip("Shot dari sudut pandang pemain sesudah judul; shot terakhir berakhir tepat di pose kamera pemain")]
+        [SerializeField] Shot[] povShots;
+        [SerializeField] Light povFlashlight;
         [SerializeField] float titleLineDuration = 2.6f;
         [SerializeField] float fadeDuration = 0.8f;
 
@@ -87,6 +98,20 @@ namespace TheAlas.UI
             }
 
             if (!skipRequested) yield return PlayTitle();
+
+            // Suasana kembali pelan-pelan ke gelap gameplay sepanjang shot sudut pandang pemain,
+            // supaya saat kontrol diserahkan tidak ada perubahan cahaya yang mendadak.
+            // FOV disamakan dengan kamera pemain selagi layar judul masih hitam.
+            cutsceneCamera.fieldOfView = playerCamera.GetComponent<Camera>().fieldOfView;
+            float povTotal = 0f, povElapsed = 0f;
+            foreach (var shot in povShots) povTotal += shot.duration;
+            foreach (var shot in povShots)
+            {
+                if (skipRequested) break;
+                float start = povElapsed;
+                yield return PlayShot(shot, t => SetAtmosphere((start + t) / povTotal));
+                povElapsed += shot.duration;
+            }
             Finish();
         }
 
@@ -97,22 +122,42 @@ namespace TheAlas.UI
                 skipRequested = true;
         }
 
-        IEnumerator PlayShot(Shot shot)
+        IEnumerator PlayShot(Shot shot, Action<float> onTime = null)
         {
             caption = shot.caption;
+            if (povFlashlight) povFlashlight.enabled = shot.flashlight;
+            Vector3 lookEnd = shot.lookAtEnd == Vector3.zero ? shot.lookAt : shot.lookAtEnd;
+            // Rotasi awal dan akhir di-slerp: menoleh jauh (hampir 180°) tetap berputar rata.
+            var startRotation = Quaternion.LookRotation(shot.lookAt - shot.fromPosition);
+            var endRotation = Quaternion.LookRotation(lookEnd - shot.toPosition);
+
             for (float t = 0f; t < shot.duration && !skipRequested; t += Time.deltaTime)
             {
                 float p = t / shot.duration;
                 float eased = Mathf.SmoothStep(0f, 1f, p);
                 cutsceneCamera.transform.position = Vector3.Lerp(shot.fromPosition, shot.toPosition, eased);
-                cutsceneCamera.transform.rotation = Quaternion.LookRotation(shot.lookAt - cutsceneCamera.transform.position);
+                cutsceneCamera.transform.rotation = shot.lookAtEnd == Vector3.zero
+                    ? Quaternion.LookRotation(shot.lookAt - cutsceneCamera.transform.position) // terus membidik satu titik
+                    : Quaternion.Slerp(startRotation, endRotation, eased);
 
-                blackout = FadeEdge(t, shot.duration);
-                textAlpha = 1f - blackout;
+                float fadeIn = shot.fadeIn ? 1f - Mathf.Clamp01(t / fadeDuration) : 0f;
+                float fadeOut = shot.fadeOut ? 1f - Mathf.Clamp01((shot.duration - t) / fadeDuration) : 0f;
+                blackout = Mathf.Max(fadeIn, fadeOut);
+                // Teks ikut memudar di awal dan akhir shot walau layarnya tidak menghitam.
+                textAlpha = 1f - FadeEdge(t, shot.duration);
                 SetEyes(shot.showEyes ? EyeVisibility(p) : 0f);
+                onTime?.Invoke(t);
                 yield return null;
             }
             SetEyes(0f);
+        }
+
+        /// <summary>0 = suasana cutscene (bulan terang, kabut tipis), 1 = suasana gameplay.</summary>
+        void SetAtmosphere(float toGameplay)
+        {
+            float k = Mathf.Clamp01(toGameplay);
+            RenderSettings.fogDensity = Mathf.Lerp(introFogDensity, gameFogDensity, k);
+            if (moonlight) moonlight.intensity = Mathf.Lerp(introMoonIntensity, gameMoonIntensity, k);
         }
 
         IEnumerator PlayTitle()
@@ -136,6 +181,10 @@ namespace TheAlas.UI
             IsPlaying = false;
             caption = title = null;
             SetEyes(0f);
+            SetAtmosphere(1f);
+            // Dilewati di tengah jalan: potong lewat layar hitam. Selesai normal: shot terakhir
+            // sudah berakhir di pose kamera pemain, jadi peralihannya tanpa potongan.
+            if (skipRequested) blackout = 1f;
             SetGameplayPaused(false);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -144,13 +193,10 @@ namespace TheAlas.UI
 
         IEnumerator FadeIntoGame()
         {
-            // Suasana gameplay dipulihkan selagi layar masih hitam, supaya tidak terlihat berubah mendadak.
-            RenderSettings.fogDensity = gameFogDensity;
-            if (moonlight) moonlight.intensity = gameMoonIntensity;
-
-            for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
+            float from = blackout;
+            for (float t = 0f; t < fadeDuration && from > 0f; t += Time.deltaTime)
             {
-                blackout = 1f - t / fadeDuration;
+                blackout = from * (1f - t / fadeDuration);
                 yield return null;
             }
             blackout = 0f;

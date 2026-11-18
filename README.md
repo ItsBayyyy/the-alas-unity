@@ -5,7 +5,7 @@ Survival horror first-person: kumpulkan empat suku cadang mobil dan kabur dari h
 - Engine: Unity 6000.3.6f1, URP, Input System
 - Scene utama: `Assets/_Project/Scenes/Hutan.unity`
 - Kontrol: WASD jalan · Shift lari · C jongkok · Spasi lompat · F senter · E ambil / setor / nyalakan mesin · 1–9 atau scroll pilih barang · Q buang (jongkok: letakkan pelan) · G atau klik kanan lempar · Esc lepas kursor · R main lagi di layar akhir
-- Cutscene pembuka sekitar 25 detik (komponen `IntroCutscene` di `Systems`): kamera turun ke mobil, mendekati mobil, lalu sepasang mata menyala di hutan, ditutup judul dan tagline. Tanpa model karakter. Timer, makhluk, kontrol, dan HUD baru jalan setelah cutscene. Spasi atau Enter untuk melewati. Teks dan durasi tiap shot bisa diubah di Inspector.
+- Cutscene pembuka sekitar 40 detik (komponen `IntroCutscene` di `Systems`): kamera turun ke mobil, mendekati mobil, sepasang mata menyala di hutan, judul dan tagline, lalu sudut pandang pemain (terduduk di samping mobil, berdiri, berbalik ke hutan) yang berakhir tepat di pose kamera pemain sehingga kontrol diserahkan tanpa potongan. Tanpa model karakter. Timer, makhluk, kontrol, dan HUD baru jalan setelah cutscene. Spasi atau Enter untuk melewati. Teks dan durasi tiap shot bisa diubah di Inspector.
 - F1 (Editor dan development build): status makhluk, jarak, dan suara untuk playtest
 - F2 (Editor dan development build): panggil makhluk ke 20 m di belakang pemain (ke depan kalau belakang di luar peta)
 - HUD saat ini adalah `TemporaryHud` (IMGUI) dan akan diganti HUD dari Citari
