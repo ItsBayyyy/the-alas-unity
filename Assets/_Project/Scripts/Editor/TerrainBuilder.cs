@@ -9,14 +9,16 @@ using Random = System.Random;
 namespace TheAlas.EditorTools
 {
     /// <summary>
-    /// Tanah peta dari heightmap buatan Gung Wah. Heightmap aslinya hilang; yang tersisa adalah
-    /// cadangan EasyRoads3D, dan dari situ diambil potongan 160 × 160 m ke
-    /// <c>Source/Terrain/Hutan_Height_129.r16</c> (16-bit, 129 × 129, little-endian).
+    /// Tanah peta dari terrain buatan Gung Wah (780 × 889 m). Area main 160 × 160 m dipotong dari
+    /// lereng kaki bukit tengahnya, berpusat di (330, 300) koordinat lokal terrain itu, ke
+    /// <c>Source/Terrain/Hutan_Height_129.r16</c> (16-bit, 129 × 129, little-endian, dinormalkan 0–1).
+    /// Bagian lain terrainnya terlalu datar atau terlalu curam untuk dijelajah dengan berjalan kaki.
     ///
-    /// Tingginya sengaja dikecilkan dan area landmark, mobil, serta titik muncul diratakan,
-    /// supaya angka gameplay dari GDD (jarak, kecepatan, lompatan) tetap berlaku.
-    /// Permukaannya dilukis dengan tekstur Yughues (serasah daun, lumut, jalan setapak, kerikil)
-    /// dan ditumbuhi rumput detail, kecuali di jalur setapak, area rata, dan Kali Kering.
+    /// Tingginya mengikuti aslinya; area landmark, mobil, dan titik muncul diratakan supaya angka
+    /// gameplay dari GDD (jarak, lompatan, titik muncul barang) tetap berlaku.
+    /// Permukaannya memakai dua lapisan tanah dari map Gung Wah (rumput dan tanah berbatu), ditambah
+    /// jalan setapak dan kerikil Kali Kering, dan ditumbuhi rumput detail, kecuali di jalur setapak,
+    /// area rata, dan Kali Kering.
     /// </summary>
     static class TerrainBuilder
     {
@@ -32,14 +34,14 @@ namespace TheAlas.EditorTools
         const string GroundTextures = "Assets/ThirdParty/YughuesFreeGroundMaterials/Textures";
         const string GrassTexture = "Assets/ThirdParty/VegetationSpawner/_Demo/Materials/Textures/GrassField.png";
 
-        /// <summary>Beda tinggi titik terendah dan tertinggi, dalam meter.</summary>
-        const float Relief = 5f;
+        /// <summary>Beda tinggi titik terendah dan tertinggi potongan, dalam meter (sesuai terrain asli).</summary>
+        const float Relief = 12.9f;
         /// <summary>Lebar peralihan dari area rata ke kontur asli, dalam meter.</summary>
         const float PadFalloff = 6f;
         /// <summary>Jarak rumput terlihat; lebih jauh dari ini sudah tertutup kabut.</summary>
         const float GrassDistance = 30f;
 
-        enum Layer { ForestFloor, Moss, Trail, Gravel }
+        enum Layer { Grass, Stones, Trail, Gravel }
 
         static Terrain current;
 
@@ -89,8 +91,8 @@ namespace TheAlas.EditorTools
 
             var layers = new[]
             {
-                EnsureLayer("TL_ForestFloor", "GrassLeafs01", 5f),
-                EnsureLayer("TL_Moss", "SoilMoss", 4f),
+                EnsureLayer("TL_Grass", "Grass04", 5f),
+                EnsureLayer("TL_Stones", "GroundStones02", 4f),
                 EnsureLayer("TL_Trail", "SoilGravel01", 3f),
                 EnsureLayer("TL_Riverbed", "Dry02", 4f),
             };
@@ -190,7 +192,7 @@ namespace TheAlas.EditorTools
             }
         }
 
-        /// <summary>Serasah daun sebagai dasar, bercak lumut acak, tanah kering di jalur, kerikil di Kali Kering.</summary>
+        /// <summary>Rumput sebagai dasar, bercak tanah berbatu acak, tanah kering di jalur, kerikil di Kali Kering.</summary>
         static void PaintSurface(TerrainData data, Func<float, float, Vector3> worldAt, Func<Vector3, float> distanceToTrail, Pad riverbed)
         {
             int n = data.alphamapResolution;
@@ -201,13 +203,13 @@ namespace TheAlas.EditorTools
             for (int x = 0; x < n; x++)
             {
                 Vector3 p = worldAt(x / (float)(n - 1), z / (float)(n - 1));
-                float moss = Mathf.Clamp01((Mathf.PerlinNoise(p.x * 0.06f + 13f, p.z * 0.06f + 7f) - 0.45f) * 2f) * 0.8f;
+                float stones = Mathf.Clamp01((Mathf.PerlinNoise(p.x * 0.06f + 13f, p.z * 0.06f + 7f) - 0.45f) * 2f) * 0.8f;
                 float trailW = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(trailCore, trailEdge, distanceToTrail(p)));
                 float gravel = 1f - Mathf.SmoothStep(0f, 1f, riverbed.Distance(p) / 1.5f);
 
                 float rest = (1f - trailW) * (1f - gravel);
-                maps[z, x, (int)Layer.ForestFloor] = rest * (1f - moss);
-                maps[z, x, (int)Layer.Moss] = rest * moss;
+                maps[z, x, (int)Layer.Grass] = rest * (1f - stones);
+                maps[z, x, (int)Layer.Stones] = rest * stones;
                 maps[z, x, (int)Layer.Trail] = trailW * (1f - gravel);
                 maps[z, x, (int)Layer.Gravel] = gravel;
             }

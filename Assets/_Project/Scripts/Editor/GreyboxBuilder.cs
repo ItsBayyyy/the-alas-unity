@@ -46,6 +46,8 @@ namespace TheAlas.EditorTools
         internal static readonly Vector3 CreatureSpawn = new(0f, 0f, -68f);
 
         const string HazelPrefabs = "Assets/ThirdParty/World Trees/Northern Woodland/Prefabs";
+        const string FarmPrefabs = "Assets/ThirdParty/MarpaStudio/Built-In/Prefabs";
+        const string FencePrefab = "Assets/ThirdParty/Stylized Fences 2/Fence_Wood_02/Prefebs/fence_wood_02mp_02_off_c.prefab";
 
         // Jalur setapak (GDD): lebih panjang dari jalan lurus, tapi tanpa semak, ranting, dan kerikil,
         // sehingga menjadi rute aman bagi pemain yang membawa beban berat. Melingkar melewati landmark.
@@ -127,6 +129,7 @@ namespace TheAlas.EditorTools
             var landmarks = new GameObject("Landmarks").transform;
             foreach (var spot in Landmarks)
                 PlaceLandmark(prefabs[$"Landmark_{spot.Name}"], spot, landmarks);
+            PlaceFarmYard(prefabs, landmarks);
 
             var rng = new Random(Seed);
             var logSegments = PlaceLogs(prefabs["Log_01"], environment, rng);
@@ -236,6 +239,14 @@ namespace TheAlas.EditorTools
             ["Landmark_MakamKeramat"] = EnsurePrefab("Landmarks/PF_Landmark_MakamKeramat", (_, m) => BuildGraves(m, p)),
             ["Landmark_PosRonda"] = EnsurePrefab("Landmarks/PF_Landmark_PosRonda", (_, m) => BuildGuardPost(m, p)),
             ["Landmark_KaliKering"] = EnsurePrefab("Landmarks/PF_Landmark_KaliKering", (r, m) => BuildRiverbed(r, m, p)),
+            // Props peternakan dari map Gung Wah, diskalakan ke ukuran nyata (tinggi dalam meter).
+            ["Prop_Lumbung"] = EnsurePrefab("Environment/PF_Prop_Lumbung", (r, m) => BuildProp(r, m, FarmPrefabs + "/OldShed.prefab", 3.5f, true)),
+            ["Prop_JeramiKotak"] = EnsurePrefab("Environment/PF_Prop_JeramiKotak", (r, m) => BuildProp(r, m, FarmPrefabs + "/HaiSquare.prefab", 0.8f, true)),
+            ["Prop_JeramiGulung"] = EnsurePrefab("Environment/PF_Prop_JeramiGulung", (r, m) => BuildProp(r, m, FarmPrefabs + "/HaiCylinder.prefab", 1.3f, true)),
+            ["Prop_GerobakDorong"] = EnsurePrefab("Environment/PF_Prop_GerobakDorong", (r, m) => BuildProp(r, m, FarmPrefabs + "/WheelCart.prefab", 0.75f, true)),
+            ["Prop_Palung"] = EnsurePrefab("Environment/PF_Prop_Palung", (r, m) => BuildProp(r, m, FarmPrefabs + "/FoodTrough.prefab", 0.6f, true)),
+            ["Prop_Ember"] = EnsurePrefab("Environment/PF_Prop_Ember", (r, m) => BuildProp(r, m, FarmPrefabs + "/Bucket.prefab", 0.35f, false)),
+            ["Prop_Pagar"] = EnsurePrefab("Environment/PF_Prop_Pagar", (r, m) => BuildProp(r, m, FencePrefab, 1.1f, true)),
         };
 
         /// <summary>
@@ -358,6 +369,24 @@ namespace TheAlas.EditorTools
             trigger.size = new Vector3(bounds.size.x * 0.8f, Mathf.Max(1.2f, bounds.size.y), bounds.size.z * 0.8f);
             trigger.center = new Vector3(bounds.center.x, trigger.size.y / 2f, bounds.center.z);
             SetSurface(root.AddComponent<GroundSurface>(), SurfaceType.Bush);
+        }
+
+        /// <summary>
+        /// Props dari paket luar: diskalakan seragam ke tinggi nyata, dasarnya diturunkan ke y = 0.
+        /// Paket aslinya tanpa collider, jadi yang padat diberi BoxCollider di root seukuran modelnya.
+        /// </summary>
+        static void BuildProp(GameObject root, Transform m, string sourcePrefab, float height, bool solid)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePrefab);
+            var prop = (GameObject)PrefabUtility.InstantiatePrefab(source, m);
+            prop.transform.localScale *= height / RendererBounds(prop).size.y;
+            prop.transform.localPosition -= Vector3.up * RendererBounds(prop).min.y;
+            if (!solid) return;
+
+            var bounds = RendererBounds(prop);
+            var box = root.AddComponent<BoxCollider>();
+            box.center = bounds.center;
+            box.size = bounds.size;
         }
 
         static void BuildLog(GameObject root, Transform m)
@@ -671,6 +700,44 @@ namespace TheAlas.EditorTools
             toCar.y = 0f;
             var rotation = spot.Name == "KaliKering" ? Quaternion.identity : Quaternion.LookRotation(toCar);
             Spawn(prefab, spot.Position, rotation, parent);
+        }
+
+        /// <summary>
+        /// Halaman Gubuk Reyot dengan props peternakan dari map Gung Wah: lumbung di samping, jerami,
+        /// gerobak, palung, ember, dan pagar di belakang. Posisi relatif terhadap gubuk (+Z = arah pintu,
+        /// menghadap mobil), semuanya di dalam area bebas pohon. Jalur setapak lewat di sisi kanan
+        /// gubuk, jadi props dikumpulkan di kiri dan belakang; yang tetap mengenai jalur dilewati.
+        /// </summary>
+        static void PlaceFarmYard(Dictionary<string, GameObject> prefabs, Transform parent)
+        {
+            var hut = Landmarks.First(s => s.Name == "GubukReyot");
+            Vector3 toCar = CarPosition - hut.Position;
+            toCar.y = 0f;
+            var facing = Quaternion.LookRotation(toCar);
+            var yard = new GameObject("HalamanGubuk").transform;
+            yard.SetParent(parent, false);
+
+            void Place(string prop, float x, float z, float yaw, float lift = 0f)
+            {
+                Vector3 pos = hut.Position + facing * new Vector3(x, 0f, z);
+                if (DistanceToTrail(pos) < TrailHalfWidth + 1f) return;
+                var go = Spawn(prefabs[$"Prop_{prop}"], pos, facing * Quaternion.Euler(0f, yaw, 0f), yard);
+                go.transform.position += Vector3.up * lift;
+            }
+
+            Place("Lumbung", -6f, -1f, 90f);
+            Place("JeramiKotak", -3.6f, -2.6f, 92f);
+            Place("JeramiKotak", -3.6f, -4.2f, 87f);
+            Place("JeramiKotak", -3.6f, -3.4f, 90f, 0.8f);
+            Place("JeramiGulung", -6f, -4.6f, 0f);
+            Place("GerobakDorong", -4f, 3.6f, 55f);
+            Place("Palung", 0f, -4f, 0f);
+            Place("Ember", -2.5f, 3.2f, 0f);
+
+            // Pagar di belakang gubuk sepanjang 13 m. Sisi panjang segmennya di sumbu Z, jadi diputar 90°.
+            float segment = prefabs["Prop_Pagar"].GetComponent<BoxCollider>().size.z;
+            for (float x = -6.5f + segment / 2f; x <= 6.5f; x += segment)
+                Place("Pagar", x, -6.5f, 90f);
         }
 
         /// <summary>

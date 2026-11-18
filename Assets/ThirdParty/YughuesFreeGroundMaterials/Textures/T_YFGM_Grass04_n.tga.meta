@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 2f852b915350da64c9c37fec45a50846
+guid: 0ed30fac3bd6bcb4b871f6c8d1833808
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -7,7 +7,7 @@ TextureImporter:
   mipmaps:
     mipMapMode: 0
     enableMipMap: 1
-    sRGBTexture: 1
+    sRGBTexture: 0
     linearTexture: 0
     fadeOut: 0
     borderMipMap: 0
@@ -54,7 +54,7 @@ TextureImporter:
   alphaUsage: 1
   alphaIsTransparency: 0
   spriteTessellationDetail: -1
-  textureType: 0
+  textureType: 1
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -117,5 +117,5 @@ AssetOrigin:
   productId: 13001
   packageName: Yughues Free Ground Materials
   packageVersion: 1.1
-  assetPath: Assets/YughuesFreeGroundMaterials/Textures/T_YFGM_SoilMoss_d.tga
+  assetPath: Assets/YughuesFreeGroundMaterials/Textures/T_YFGM_Grass04_n.tga
   uploadId: 745761
