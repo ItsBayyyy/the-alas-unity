@@ -30,6 +30,12 @@ namespace TheAlas.EditorTools
         const string LightingPath = SceneDir + "/Hutan_Lighting.lighting";
 
         const float MapHalfSize = 80f;
+        /// <summary>
+        /// Hutan pemandangan di luar tembok tak terlihat. Pemain tidak bisa ke sana, tapi tepi peta jadi
+        /// terlihat seperti hutan yang berlanjut, bukan tanah terpotong. Lebih jauh dari ini tertutup kabut.
+        /// </summary>
+        const float OuterForestMargin = 30f;
+        const float OuterTreeDensity = 0.55f;
         const int Seed = 1311;
 
         static readonly Color FogColor = new Color32(0x0D, 0x10, 0x0B, 0xFF);
@@ -577,7 +583,7 @@ namespace TheAlas.EditorTools
             TerrainBuilder.Clear();
             if (TerrainBuilder.HasHeightmap)
             {
-                TerrainBuilder.Build(parent, MapHalfSize, FlatAreas(), DistanceToTrail,
+                TerrainBuilder.Build(parent, MapHalfSize, OuterForestMargin, FlatAreas(), DistanceToTrail,
                     TerrainBuilder.Pad.Rect(RiverCenter, RiverSize + new Vector2(1f, 1f)));
                 return;
             }
@@ -773,7 +779,22 @@ namespace TheAlas.EditorTools
                 SpawnScaled(species[rng.Next(species.Length)], pos, rng, parent, 0.85f, 1.2f);
                 count++;
             }
-            Debug.Log($"[Greybox] {count} pohon ditempatkan");
+
+            // Hutan pemandangan di luar tembok. Generator acaknya terpisah supaya susunan pohon di area main tetap.
+            var outerRng = new Random(Seed + 99);
+            float outer = MapHalfSize + OuterForestMargin - 2f;
+            int outerCount = 0;
+            for (float x = -outer; x <= outer; x += step)
+            for (float z = -outer; z <= outer; z += step)
+            {
+                if (Mathf.Abs(x) <= MapHalfSize - 2f && Mathf.Abs(z) <= MapHalfSize - 2f) continue; // area main sudah diisi
+                if (outerRng.NextDouble() > OuterTreeDensity) continue;
+                var pos = new Vector3(x + Range(outerRng, -jitter, jitter), 0f, z + Range(outerRng, -jitter, jitter));
+                var species = outerRng.NextDouble() < 0.6 ? pines : teaks;
+                SpawnScaled(species[outerRng.Next(species.Length)], pos, outerRng, parent, 0.85f, 1.2f);
+                outerCount++;
+            }
+            Debug.Log($"[Greybox] {count} pohon di area main, {outerCount} pohon pemandangan di luar tembok");
         }
 
         static bool IsReserved(Vector3 pos, float margin)

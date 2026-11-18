@@ -448,7 +448,10 @@ namespace TheAlas.EditorTools
             settings.ApplyModifiedPropertiesWithoutUndo();
 
             var surface = new GameObject("NavMesh").AddComponent<NavMeshSurface>();
-            surface.collectObjects = CollectObjects.All;
+            // Hanya area main di dalam tembok; hutan pemandangan di luar tembok tidak boleh dijelajahi makhluk.
+            surface.collectObjects = CollectObjects.Volume;
+            surface.center = new Vector3(0f, 10f, 0f);
+            surface.size = new Vector3(161f, 60f, 161f);
             surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
             surface.layerMask = LayerMask.GetMask("Default");
             surface.BuildNavMesh();

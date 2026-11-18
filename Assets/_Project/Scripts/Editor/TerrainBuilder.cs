@@ -21,9 +21,12 @@ namespace TheAlas.EditorTools
     static class TerrainBuilder
     {
         const string HeightmapPath = "Source/Terrain/Hutan_Height_129.r16";
-        const int Resolution = 129;
+        /// <summary>Resolusi file heightmap (potongan 160 m area main).</summary>
+        const int SourceResolution = 129;
+        /// <summary>Resolusi terrain, yang mencakup area main ditambah hutan pemandangan di luar tembok.</summary>
+        const int Resolution = 257;
         const int SplatResolution = 256;
-        const int DetailResolution = 256;
+        const int DetailResolution = 352; // kelipatan 16; sekitar 0,6 m per sel di terrain 220 m
         const string TerrainDataPath = GreyboxBuilder.SceneDir + "/Hutan_Terrain.asset";
         const string LayerDir = GreyboxBuilder.Root + "/Art/Materials/Terrain";
         const string GroundTextures = "Assets/ThirdParty/YughuesFreeGroundMaterials/Textures";
@@ -72,12 +75,17 @@ namespace TheAlas.EditorTools
             }
         }
 
-        public static Terrain Build(Transform parent, float mapHalfSize, IReadOnlyList<Pad> pads,
+        /// <param name="outerMargin">
+        /// Lebar hutan pemandangan di luar tembok tak terlihat. Tanpa ini, tepi peta terlihat sebagai
+        /// tanah yang terpotong lalu bidang kosong.
+        /// </param>
+        public static Terrain Build(Transform parent, float mapHalfSize, float outerMargin, IReadOnlyList<Pad> pads,
             Func<Vector3, float> distanceToTrail, Pad riverbed)
         {
-            float size = mapHalfSize * 2f;
-            var heights = ReadHeightmap();
-            FlattenPads(heights, mapHalfSize, size, pads);
+            float half = mapHalfSize + outerMargin;
+            float size = half * 2f;
+            var heights = BuildHeights(mapHalfSize, half);
+            FlattenPads(heights, half, size, pads);
 
             var layers = new[]
             {
@@ -96,7 +104,7 @@ namespace TheAlas.EditorTools
             data.alphamapResolution = SplatResolution;
             data.terrainLayers = layers;
 
-            Vector3 WorldAt(float u, float v) => new(u * size - mapHalfSize, 0f, v * size - mapHalfSize);
+            Vector3 WorldAt(float u, float v) => new(u * size - half, 0f, v * size - half);
             PaintSurface(data, WorldAt, distanceToTrail, riverbed);
             PlantGrass(data, WorldAt, pads, distanceToTrail, riverbed);
             EditorUtility.SetDirty(data);
@@ -105,7 +113,7 @@ namespace TheAlas.EditorTools
             var go = Terrain.CreateTerrainGameObject(data);
             go.name = "Ground";
             go.transform.SetParent(parent, false);
-            go.transform.position = new Vector3(-mapHalfSize, 0f, -mapHalfSize);
+            go.transform.position = new Vector3(-half, 0f, -half);
 
             current = go.GetComponent<Terrain>();
             current.materialTemplate = GraphicsSettings.currentRenderPipeline.defaultTerrainMaterial;
@@ -120,21 +128,46 @@ namespace TheAlas.EditorTools
         static float[,] ReadHeightmap()
         {
             var bytes = File.ReadAllBytes(HeightmapPath);
-            var heights = new float[Resolution, Resolution];
-            for (int z = 0; z < Resolution; z++)
-            for (int x = 0; x < Resolution; x++)
+            var heights = new float[SourceResolution, SourceResolution];
+            for (int z = 0; z < SourceResolution; z++)
+            for (int x = 0; x < SourceResolution; x++)
             {
-                int i = (z * Resolution + x) * 2;
+                int i = (z * SourceResolution + x) * 2;
                 heights[z, x] = (bytes[i] | (bytes[i + 1] << 8)) / 65535f;
             }
             return heights;
         }
 
+        /// <summary>
+        /// Heightmap area main ditempatkan di tengah terrain yang lebih lebar. Di luar area main,
+        /// tinggi tepinya diteruskan keluar (koordinat di-clamp), jadi tanahnya menyambung tanpa tebing.
+        /// </summary>
+        static float[,] BuildHeights(float mapHalfSize, float half)
+        {
+            var source = ReadHeightmap();
+            float size = half * 2f;
+            var heights = new float[Resolution, Resolution];
+            for (int z = 0; z < Resolution; z++)
+            for (int x = 0; x < Resolution; x++)
+            {
+                float wx = x / (float)(Resolution - 1) * size - half;
+                float wz = z / (float)(Resolution - 1) * size - half;
+                float u = Mathf.Clamp01((wx + mapHalfSize) / (2f * mapHalfSize)) * (SourceResolution - 1);
+                float v = Mathf.Clamp01((wz + mapHalfSize) / (2f * mapHalfSize)) * (SourceResolution - 1);
+                int x0 = Mathf.Min((int)u, SourceResolution - 2), z0 = Mathf.Min((int)v, SourceResolution - 2);
+                float fx = u - x0, fz = v - z0;
+                heights[z, x] = Mathf.Lerp(
+                    Mathf.Lerp(source[z0, x0], source[z0, x0 + 1], fx),
+                    Mathf.Lerp(source[z0 + 1, x0], source[z0 + 1, x0 + 1], fx), fz);
+            }
+            return heights;
+        }
+
         /// <summary>Setiap area diratakan ke tinggi rata-rata kontur di bawahnya, lalu dibaurkan ke sekitarnya.</summary>
-        static void FlattenPads(float[,] heights, float mapHalfSize, float size, IReadOnlyList<Pad> pads)
+        static void FlattenPads(float[,] heights, float half, float size, IReadOnlyList<Pad> pads)
         {
             Vector3 WorldAt(int z, int x) =>
-                new(x / (float)(Resolution - 1) * size - mapHalfSize, 0f, z / (float)(Resolution - 1) * size - mapHalfSize);
+                new(x / (float)(Resolution - 1) * size - half, 0f, z / (float)(Resolution - 1) * size - half);
 
             foreach (var pad in pads)
             {
