@@ -60,11 +60,12 @@ namespace TheAlas.Creature
 
         [Header("Mata")]
         [SerializeField] Renderer[] eyes;
-        [SerializeField, ColorUsage(false, true)] Color wanderEyeColor = new(0.25f, 0.2f, 0.1f);
-        [SerializeField, ColorUsage(false, true)] Color investigateEyeColor = new(3f, 2.2f, 0.6f);
-        [SerializeField, ColorUsage(false, true)] Color huntEyeColor = new(4f, 0.4f, 0.25f);
+        [SerializeField] Color wanderEyeColor = new(0.12f, 0.1f, 0.05f);
+        [SerializeField] Color investigateEyeColor = new(1f, 0.78f, 0.22f);
+        [SerializeField] Color huntEyeColor = new(1f, 0.12f, 0.08f);
 
-        static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        // Mata memakai shader Unlit, jadi warnanya selalu penuh tanpa butuh cahaya.
+        static readonly int EyeColorId = Shader.PropertyToID("_BaseColor");
 
         NavMeshAgent agent;
         MaterialPropertyBlock eyeBlock;
@@ -263,7 +264,7 @@ namespace TheAlas.Creature
                 _ => wanderEyeColor
             };
 
-            eyeBlock.SetColor(EmissionColorId, color);
+            eyeBlock.SetColor(EyeColorId, color);
             foreach (var eye in eyes) eye.SetPropertyBlock(eyeBlock);
         }
 

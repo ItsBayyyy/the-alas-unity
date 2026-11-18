@@ -207,9 +207,9 @@ MonoBehaviour:
   eyes:
   - {fileID: 5456655294164220133}
   - {fileID: 9007343404666109910}
-  wanderEyeColor: {r: 0.25, g: 0.2, b: 0.1, a: 1}
-  investigateEyeColor: {r: 3, g: 2.2, b: 0.6, a: 1}
-  huntEyeColor: {r: 4, g: 0.4, b: 0.25, a: 1}
+  wanderEyeColor: {r: 0.12, g: 0.1, b: 0.05, a: 1}
+  investigateEyeColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  huntEyeColor: {r: 1, g: 0.12, b: 0.08, a: 1}
 --- !u!1 &4321523123978170032
 GameObject:
   m_ObjectHideFlags: 0

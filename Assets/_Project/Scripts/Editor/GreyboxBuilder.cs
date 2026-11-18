@@ -168,8 +168,28 @@ namespace TheAlas.EditorTools
             // Kuning lentera untuk barang wajib (palet GDD), sedikit menyala supaya terlihat di gelap.
             ItemPart = Mat("ItemPart", "#E0A63C", emission: 0.6f),
             CreatureBody = Mat("CreatureBody", "#121410"),
-            CreatureEye = Mat("CreatureEye", "#000000", emission: 1f),
+            CreatureEye = EyeMaterial(),
         };
+
+        /// <summary>
+        /// Mata makhluk memakai URP Unlit: warnanya (dari MaterialPropertyBlock) selalu tampil penuh.
+        /// Versi Lit + emisi hitam tidak bisa dipakai karena Unity mematikan kata kunci _EMISSION.
+        /// </summary>
+        static Material EyeMaterial()
+        {
+            string path = $"{MaterialDir}/M_Greybox_CreatureEye.mat";
+            var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!mat)
+            {
+                mat = new Material(unlit);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            if (mat.shader != unlit) mat.shader = unlit;
+            mat.SetColor("_BaseColor", Color.black);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
 
         internal static Material Mat(string name, string hex, float emission = 0f)
         {

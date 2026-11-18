@@ -131,6 +131,107 @@ namespace TheAlas.EditorTools
                 ("interactor", interactor), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
 
             BakeNavMesh();
+            BuildIntro(systems, player, carObject.transform,
+                new Behaviour[] { motor, player.GetComponent<PlayerLook>(), inventory, interactor, round, creature, hud });
+        }
+
+        // ---------- Cutscene pembuka ----------
+
+        /// <summary>
+        /// Cutscene tanpa model karakter: kamera turun ke mobil, mendekati mobil, lalu menatap hutan
+        /// tempat sepasang mata menyala sebentar. Posisi shot dihitung dari mobil dan titik muncul pemain.
+        /// </summary>
+        static void BuildIntro(GameObject systems, GameObject player, Transform car, Behaviour[] paused)
+        {
+            var camObject = new GameObject("CutsceneCamera");
+            camObject.transform.SetParent(systems.transform, false);
+            var cam = camObject.AddComponent<Camera>();
+            var playerCam = player.GetComponentInChildren<Camera>(true);
+            cam.fieldOfView = 55f;
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 80f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = playerCam.backgroundColor;
+            camObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            camObject.AddComponent<AudioListener>();
+
+            Vector3 carPos = car.position;
+            Vector3 eye = player.transform.position + Vector3.up * 1.65f;
+            Vector3 south = Vector3.back;
+
+            var eyesRoot = BuildIntroEyes(systems.transform, eye, south);
+            var eyeRenderers = eyesRoot.GetComponentsInChildren<Renderer>(true).Cast<Object>().ToArray();
+
+            var intro = systems.AddComponent<IntroCutscene>();
+            var so = new SerializedObject(intro);
+            so.FindProperty("cutsceneCamera").objectReferenceValue = cam;
+            so.FindProperty("playerCamera").objectReferenceValue = playerCam.gameObject;
+            so.FindProperty("moonlight").objectReferenceValue = Object.FindObjectsByType<Light>(FindObjectsSortMode.None)
+                .FirstOrDefault(l => l.type == LightType.Directional);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            SetReferences(intro, "pausedDuringIntro", paused);
+            SetReferences(intro, "eyes", eyeRenderers);
+
+            var shots = new[]
+            {
+                (caption: "Malam itu, mobilmu mogok di tepi alas.", duration: 7f,
+                    // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
+                    from: carPos + new Vector3(-14f, 18f, -32f), to: carPos + new Vector3(-5f, 5f, -11f), look: carPos + Vector3.up, eyes: false),
+                (caption: "Kunci, busi, aki, bensin… semuanya tertinggal di dalam hutan.", duration: 6.5f,
+                    from: carPos + new Vector3(-5.5f, 1.3f, -4.5f), to: carPos + new Vector3(-3.6f, 1.0f, -3.0f), look: carPos + new Vector3(0.5f, 0.8f, 0f), eyes: false),
+                (caption: "Ada yang menunggu di antara pepohonan.", duration: 7f,
+                    from: eye, to: eye + south * 4f + Vector3.down * 0.05f, look: eyesRoot.position, eyes: true),
+            };
+
+            so = new SerializedObject(intro);
+            var shotList = so.FindProperty("shots");
+            shotList.arraySize = shots.Length;
+            for (int i = 0; i < shots.Length; i++)
+            {
+                var s = shotList.GetArrayElementAtIndex(i);
+                s.FindPropertyRelative("caption").stringValue = shots[i].caption;
+                s.FindPropertyRelative("duration").floatValue = shots[i].duration;
+                s.FindPropertyRelative("fromPosition").vector3Value = shots[i].from;
+                s.FindPropertyRelative("toPosition").vector3Value = shots[i].to;
+                s.FindPropertyRelative("lookAt").vector3Value = shots[i].look;
+                s.FindPropertyRelative("showEyes").boolValue = shots[i].eyes;
+            }
+            var titles = so.FindProperty("titleLines");
+            titles.arraySize = 2;
+            titles.GetArrayElementAtIndex(0).stringValue = "Ia tidak melihat. Ia mendengar.";
+            titles.GetArrayElementAtIndex(1).stringValue = "Sedikit itu cukup. Banyak itu petaka."; // tagline GDD
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            camObject.SetActive(false); // cutscene sendiri yang menyalakannya
+        }
+
+        /// <summary>Hanya sepasang mata, setinggi makhluk, di titik hutan yang tidak terhalang batang pohon.</summary>
+        static Transform BuildIntroEyes(Transform parent, Vector3 viewer, Vector3 direction)
+        {
+            // Dekat dan agak besar dari mata makhluk sebenarnya, supaya tetap terbaca di layar kecil tanpa bloom.
+            const float distance = 14f, eyeHeight = 2.8f;
+            Physics.SyncTransforms(); // pohon baru saja ditanam; collider-nya harus terdaftar sebelum Linecast
+            Vector3 side = Vector3.Cross(Vector3.up, direction);
+            Vector3 best = viewer + direction * distance;
+            foreach (float offset in new[] { 0f, 2f, -2f, 4f, -4f, 6f, -6f, 8f, -8f })
+            {
+                Vector3 p = viewer + direction * distance + side * offset;
+                p.y = TerrainBuilder.HeightAt(p) + eyeHeight;
+                if (!Physics.Linecast(viewer, p, ~0, QueryTriggerInteraction.Ignore)) { best = p; break; }
+            }
+
+            var root = new GameObject("IntroEyes").transform;
+            root.SetParent(parent, false);
+            root.position = best;
+            root.rotation = Quaternion.LookRotation(viewer - best);
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(GreyboxBuilder.Root + "/Art/Materials/Greybox/M_Greybox_CreatureEye.mat");
+            foreach (float x in new[] { -0.13f, 0.13f })
+            {
+                var e = GreyboxBuilder.Primitive(root, PrimitiveType.Sphere, "Eye", new Vector3(x, 0f, 0f), Vector3.one * 0.11f, material, collider: false);
+                e.GetComponent<Renderer>().enabled = false;
+            }
+            return root;
         }
 
         // ---------- Prefab gameplay ----------
