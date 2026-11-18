@@ -17,6 +17,7 @@ Daftar ini menjadi sumber untuk halaman kredit di itch.io. Setiap aset dari luar
 | Aset | Pembuat | Lokasi di proyek |
 |---|---|---|
 | Aki, Kunci Mobil, Filter Oli, Stir (model dan tekstur) | Gung Wah | `Assets/_Project/Art/Props/` |
+| Kontur tanah peta (potongan 160 × 160 m dari terrain buatannya) | Gung Wah | `Source/Terrain/Hutan_Height_129.r16`, `Assets/_Project/Scenes/Hutan_Terrain.asset` |
 
 ## Aset dari luar
 

@@ -454,6 +454,13 @@ namespace TheAlas.EditorTools
 
         static void BuildGround(Transform parent, Palette p)
         {
+            TerrainBuilder.Clear();
+            if (TerrainBuilder.HasHeightmap)
+            {
+                TerrainBuilder.Build(parent, MapHalfSize, p.Ground.GetColor("_BaseColor"), FlatAreas());
+                return;
+            }
+
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(parent, false);
@@ -461,15 +468,32 @@ namespace TheAlas.EditorTools
             ground.GetComponent<Renderer>().sharedMaterial = p.Ground;
         }
 
+        /// <summary>Area yang diratakan di terrain: landmark, Kali Kering, mobil, dan titik muncul.</summary>
+        static List<TerrainBuilder.Pad> FlatAreas()
+        {
+            var pads = new List<TerrainBuilder.Pad>
+            {
+                TerrainBuilder.Pad.Circle(CarPosition, 10f),
+                TerrainBuilder.Pad.Circle(PlayerSpawn, 4f),
+                TerrainBuilder.Pad.Circle(CreatureSpawn, 5f),
+                TerrainBuilder.Pad.Rect(RiverCenter, RiverSize + new Vector2(2f, 3f)),
+            };
+            foreach (var spot in Landmarks)
+                if (spot.ClearRadius > 0f)
+                    pads.Add(TerrainBuilder.Pad.Circle(spot.Position, Mathf.Max(6f, spot.ClearRadius * 0.7f)));
+            return pads;
+        }
+
         static void BuildBounds(Transform parent)
         {
             var bounds = new GameObject("MapBounds").transform;
             bounds.SetParent(parent, false);
             float size = MapHalfSize * 2f;
-            AddWall(bounds, new Vector3(0f, 3f, MapHalfSize + 0.5f), new Vector3(size + 2f, 6f, 1f));
-            AddWall(bounds, new Vector3(0f, 3f, -MapHalfSize - 0.5f), new Vector3(size + 2f, 6f, 1f));
-            AddWall(bounds, new Vector3(MapHalfSize + 0.5f, 3f, 0f), new Vector3(1f, 6f, size + 2f));
-            AddWall(bounds, new Vector3(-MapHalfSize - 0.5f, 3f, 0f), new Vector3(1f, 6f, size + 2f));
+            // Cukup tinggi untuk menutup kontur terrain di sepanjang tepi.
+            AddWall(bounds, new Vector3(0f, 8f, MapHalfSize + 0.5f), new Vector3(size + 2f, 20f, 1f));
+            AddWall(bounds, new Vector3(0f, 8f, -MapHalfSize - 0.5f), new Vector3(size + 2f, 20f, 1f));
+            AddWall(bounds, new Vector3(MapHalfSize + 0.5f, 8f, 0f), new Vector3(1f, 20f, size + 2f));
+            AddWall(bounds, new Vector3(-MapHalfSize - 0.5f, 8f, 0f), new Vector3(1f, 20f, size + 2f));
         }
 
         static void AddWall(Transform parent, Vector3 center, Vector3 size)
@@ -605,6 +629,7 @@ namespace TheAlas.EditorTools
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             go.transform.SetParent(parent, false);
+            pos.y += TerrainBuilder.HeightAt(pos); // posisi tata letak di y = 0 diturunkan ke permukaan tanah
             go.transform.SetPositionAndRotation(pos, rot);
             return go;
         }

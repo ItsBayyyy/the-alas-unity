@@ -90,7 +90,7 @@ PF_Landmark_SumurTua        ← root: pivot di tanah, berisi komponen gameplay
 
 ## Greybox
 
-Menu **Tools → The Alas → Bangun Greybox Hutan** membangun ulang `Hutan.unity` dari nol: peta 160 × 160 m, mobil di tepi utara, enam landmark, sekitar 490 pohon, batang tumbang yang melintang di jalur lurus mobil–landmark, semak, makhluk, sistem ronde, dan navmesh. Isi `Model` di prefab yang sudah ada tidak disentuh; builder hanya menambah komponen gameplay yang belum ada, jadi model final aman. Perubahan manual di scene **hilang** kalau menu ini dijalankan lagi; berhenti memakainya setelah layout dikunci.
+Menu **Tools → The Alas → Bangun Greybox Hutan** membangun ulang `Hutan.unity` dari nol: peta 160 × 160 m, mobil di tepi utara, enam landmark, sekitar 490 pohon, batang tumbang yang melintang di jalur lurus mobil–landmark, semak, makhluk, sistem ronde, dan navmesh. Tanahnya terrain dari `Source/Terrain/Hutan_Height_129.r16` (potongan map Gung Wah, beda tinggi 5 m); area landmark, mobil, dan titik muncul diratakan otomatis, dan semua objek diletakkan mengikuti kontur. Hapus file itu untuk kembali ke tanah datar. Isi `Model` di prefab yang sudah ada tidak disentuh; builder hanya menambah komponen gameplay yang belum ada, jadi model final aman. Perubahan manual di scene **hilang** kalau menu ini dijalankan lagi; berhenti memakainya setelah layout dikunci.
 
 ## Git
 
