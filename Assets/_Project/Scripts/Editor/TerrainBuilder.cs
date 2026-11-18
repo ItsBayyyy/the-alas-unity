@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Rendering;
+using Random = System.Random;
 
 namespace TheAlas.EditorTools
 {
@@ -13,19 +15,28 @@ namespace TheAlas.EditorTools
     ///
     /// Tingginya sengaja dikecilkan dan area landmark, mobil, serta titik muncul diratakan,
     /// supaya angka gameplay dari GDD (jarak, kecepatan, lompatan) tetap berlaku.
+    /// Permukaannya dilukis dengan tekstur Yughues (serasah daun, lumut, jalan setapak, kerikil)
+    /// dan ditumbuhi rumput detail, kecuali di jalur setapak, area rata, dan Kali Kering.
     /// </summary>
     static class TerrainBuilder
     {
         const string HeightmapPath = "Source/Terrain/Hutan_Height_129.r16";
         const int Resolution = 129;
+        const int SplatResolution = 256;
+        const int DetailResolution = 256;
         const string TerrainDataPath = GreyboxBuilder.SceneDir + "/Hutan_Terrain.asset";
-        const string LayerPath = GreyboxBuilder.Root + "/Art/Materials/Greybox/TL_Ground_Greybox.terrainlayer";
-        const string GroundTexturePath = GreyboxBuilder.Root + "/Art/Textures/T_Ground_Greybox.png";
+        const string LayerDir = GreyboxBuilder.Root + "/Art/Materials/Terrain";
+        const string GroundTextures = "Assets/ThirdParty/YughuesFreeGroundMaterials/Textures";
+        const string GrassTexture = "Assets/ThirdParty/VegetationSpawner/_Demo/Materials/Textures/GrassField.png";
 
         /// <summary>Beda tinggi titik terendah dan tertinggi, dalam meter.</summary>
         const float Relief = 5f;
         /// <summary>Lebar peralihan dari area rata ke kontur asli, dalam meter.</summary>
         const float PadFalloff = 6f;
+        /// <summary>Jarak rumput terlihat; lebih jauh dari ini sudah tertutup kabut.</summary>
+        const float GrassDistance = 30f;
+
+        enum Layer { ForestFloor, Moss, Trail, Gravel }
 
         static Terrain current;
 
@@ -51,7 +62,7 @@ namespace TheAlas.EditorTools
             public static Pad Circle(Vector3 center, float radius) => new(center, new Vector2(radius, radius), false);
             public static Pad Rect(Vector3 center, Vector2 size) => new(center, size / 2f, true);
 
-            /// <summary>Jarak dari tepi area rata (0 di dalam).</summary>
+            /// <summary>Jarak dari tepi area (0 di dalam).</summary>
             public float Distance(Vector3 p)
             {
                 float dx = p.x - Center.x, dz = p.z - Center.z;
@@ -61,18 +72,35 @@ namespace TheAlas.EditorTools
             }
         }
 
-        public static Terrain Build(Transform parent, float mapHalfSize, Color groundColor, IReadOnlyList<Pad> pads)
+        public static Terrain Build(Transform parent, float mapHalfSize, IReadOnlyList<Pad> pads,
+            Func<Vector3, float> distanceToTrail, Pad riverbed)
         {
             float size = mapHalfSize * 2f;
             var heights = ReadHeightmap();
             FlattenPads(heights, mapHalfSize, size, pads);
 
+            var layers = new[]
+            {
+                EnsureLayer("TL_ForestFloor", "GrassLeafs01", 5f),
+                EnsureLayer("TL_Moss", "SoilMoss", 4f),
+                EnsureLayer("TL_Trail", "SoilGravel01", 3f),
+                EnsureLayer("TL_Riverbed", "Dry02", 4f),
+            };
+
+            // Aset dibuat dulu: peta lapisan disimpan sebagai sub-aset, dan hilang kalau dilukis sebelum CreateAsset.
             AssetDatabase.DeleteAsset(TerrainDataPath);
             var data = new TerrainData { heightmapResolution = Resolution };
             data.size = new Vector3(size, Relief, size);
-            data.SetHeights(0, 0, heights);
-            data.terrainLayers = new[] { EnsureGroundLayer(groundColor) };
             AssetDatabase.CreateAsset(data, TerrainDataPath);
+            data.SetHeights(0, 0, heights);
+            data.alphamapResolution = SplatResolution;
+            data.terrainLayers = layers;
+
+            Vector3 WorldAt(float u, float v) => new(u * size - mapHalfSize, 0f, v * size - mapHalfSize);
+            PaintSurface(data, WorldAt, distanceToTrail, riverbed);
+            PlantGrass(data, WorldAt, pads, distanceToTrail, riverbed);
+            EditorUtility.SetDirty(data);
+            AssetDatabase.SaveAssets();
 
             var go = Terrain.CreateTerrainGameObject(data);
             go.name = "Ground";
@@ -82,6 +110,8 @@ namespace TheAlas.EditorTools
             current = go.GetComponent<Terrain>();
             current.materialTemplate = GraphicsSettings.currentRenderPipeline.defaultTerrainMaterial;
             current.drawInstanced = true;
+            current.detailObjectDistance = GrassDistance;
+            current.detailObjectDensity = 1f;
             return current;
         }
 
@@ -127,33 +157,96 @@ namespace TheAlas.EditorTools
             }
         }
 
-        static TerrainLayer EnsureGroundLayer(Color groundColor)
+        /// <summary>Serasah daun sebagai dasar, bercak lumut acak, tanah kering di jalur, kerikil di Kali Kering.</summary>
+        static void PaintSurface(TerrainData data, Func<float, float, Vector3> worldAt, Func<Vector3, float> distanceToTrail, Pad riverbed)
         {
-            var layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(LayerPath);
+            int n = data.alphamapResolution;
+            var maps = new float[n, n, 4];
+            float trailCore = GreyboxBuilder.TrailHalfWidth * 0.8f, trailEdge = GreyboxBuilder.TrailHalfWidth + 0.8f;
+
+            for (int z = 0; z < n; z++)
+            for (int x = 0; x < n; x++)
+            {
+                Vector3 p = worldAt(x / (float)(n - 1), z / (float)(n - 1));
+                float moss = Mathf.Clamp01((Mathf.PerlinNoise(p.x * 0.06f + 13f, p.z * 0.06f + 7f) - 0.45f) * 2f) * 0.8f;
+                float trailW = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(trailCore, trailEdge, distanceToTrail(p)));
+                float gravel = 1f - Mathf.SmoothStep(0f, 1f, riverbed.Distance(p) / 1.5f);
+
+                float rest = (1f - trailW) * (1f - gravel);
+                maps[z, x, (int)Layer.ForestFloor] = rest * (1f - moss);
+                maps[z, x, (int)Layer.Moss] = rest * moss;
+                maps[z, x, (int)Layer.Trail] = trailW * (1f - gravel);
+                maps[z, x, (int)Layer.Gravel] = gravel;
+            }
+            data.SetAlphamaps(0, 0, maps);
+        }
+
+        /// <summary>Rumput rendah bergerombol; tidak tumbuh di jalur, area rata, dan dasar kali.</summary>
+        static void PlantGrass(TerrainData data, Func<float, float, Vector3> worldAt, IReadOnlyList<Pad> pads,
+            Func<Vector3, float> distanceToTrail, Pad riverbed)
+        {
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(GrassTexture);
+            if (!texture) return;
+
+            // Nilai di detail layer = jumlah helai per sel. Mode bawaan Unity 6 (Coverage) membacanya sebagai persen.
+            data.SetDetailScatterMode(DetailScatterMode.InstanceCountMode);
+            data.SetDetailResolution(DetailResolution, 16);
+            data.detailPrototypes = new[]
+            {
+                new DetailPrototype
+                {
+                    prototypeTexture = texture,
+                    // Billboard: helai selalu tegak menghadap kamera; mode Grass biasa tampak rebah di URP.
+                    renderMode = DetailRenderMode.GrassBillboard,
+                    // Tekstur rumputnya putih; warna ini yang memberi hijau tua lantai hutan malam.
+                    healthyColor = new Color(0.10f, 0.16f, 0.06f),
+                    dryColor = new Color(0.17f, 0.16f, 0.07f),
+                    minWidth = 0.4f, maxWidth = 0.8f,
+                    minHeight = 0.25f, maxHeight = 0.55f,
+                    noiseSpread = 0.4f,
+                }
+            };
+
+            var density = new int[DetailResolution, DetailResolution];
+            var rng = new Random(23);
+            for (int z = 0; z < DetailResolution; z++)
+            for (int x = 0; x < DetailResolution; x++)
+            {
+                Vector3 p = worldAt(x / (float)(DetailResolution - 1), z / (float)(DetailResolution - 1));
+                float clump = Mathf.PerlinNoise(p.x * 0.12f + 3f, p.z * 0.12f + 11f);
+                if (clump < 0.45f) continue;
+                if (distanceToTrail(p) < GreyboxBuilder.TrailHalfWidth + 0.4f || riverbed.Distance(p) <= 0.5f) continue;
+                bool onPad = false;
+                foreach (var pad in pads) if (pad.Distance(p) <= 0f) { onPad = true; break; }
+                if (onPad) continue;
+                density[z, x] = 1 + rng.Next(3);
+            }
+            data.SetDetailLayer(0, 0, 0, density);
+        }
+
+        static TerrainLayer EnsureLayer(string name, string textureName, float tile)
+        {
+            string path = $"{LayerDir}/{name}.terrainlayer";
+            var layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
             if (layer) return layer;
 
-            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(GroundTexturePath);
-            if (!texture)
+            Directory.CreateDirectory(LayerDir);
+            AssetDatabase.Refresh();
+            string normalPath = $"{GroundTextures}/T_YFGM_{textureName}_n.tga";
+            if (AssetImporter.GetAtPath(normalPath) is TextureImporter importer && importer.textureType != TextureImporterType.NormalMap)
             {
-                // Noise halus satu warna supaya tanah tidak terlihat seperti plastik; dibuat sendiri, bukan aset luar.
-                const int n = 128;
-                var tex = new Texture2D(n, n, TextureFormat.RGB24, false);
-                var rng = new System.Random(7);
-                for (int y = 0; y < n; y++)
-                for (int x = 0; x < n; x++)
-                {
-                    float v = 0.85f + (float)rng.NextDouble() * 0.3f;
-                    tex.SetPixel(x, y, groundColor * v);
-                }
-                Directory.CreateDirectory(Path.GetDirectoryName(GroundTexturePath));
-                File.WriteAllBytes(GroundTexturePath, tex.EncodeToPNG());
-                Object.DestroyImmediate(tex);
-                AssetDatabase.ImportAsset(GroundTexturePath);
-                texture = AssetDatabase.LoadAssetAtPath<Texture2D>(GroundTexturePath);
+                importer.textureType = TextureImporterType.NormalMap;
+                importer.SaveAndReimport();
             }
 
-            layer = new TerrainLayer { diffuseTexture = texture, tileSize = new Vector2(6f, 6f) };
-            AssetDatabase.CreateAsset(layer, LayerPath);
+            layer = new TerrainLayer
+            {
+                diffuseTexture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{GroundTextures}/T_YFGM_{textureName}_d.tga"),
+                normalMapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath),
+                tileSize = new Vector2(tile, tile),
+                smoothness = 0.05f,
+            };
+            AssetDatabase.CreateAsset(layer, path);
             return layer;
         }
     }

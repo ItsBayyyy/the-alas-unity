@@ -39,6 +39,19 @@ namespace TheAlas.EditorTools
         static readonly Vector3 PlayerSpawn = new(3.5f, 0f, 67f);
         internal static readonly Vector3 CreatureSpawn = new(0f, 0f, -68f);
 
+        const string HazelPrefabs = "Assets/ThirdParty/World Trees/Northern Woodland/Prefabs";
+
+        // Jalur setapak (GDD): lebih panjang dari jalan lurus, tapi tanpa semak, ranting, dan kerikil,
+        // sehingga menjadi rute aman bagi pemain yang membawa beban berat. Melingkar melewati landmark.
+        static readonly Vector2[] TrailWaypoints =
+        {
+            new(0f, 62f), new(-16f, 57f), new(-32f, 50f), new(-46f, 33f), new(-56f, 10f), new(-60f, -14f),
+            new(-56f, -30f), new(-42f, -43f), new(-20f, -45f), new(4f, -44f), new(26f, -43f), new(46f, -38f),
+            new(58f, -24f), new(60f, -2f), new(52f, 18f), new(40f, 38f), new(22f, 52f), new(0f, 62f),
+        };
+        internal const float TrailHalfWidth = 1.3f;
+        static List<Vector3> trail;
+
         static readonly Vector3 RiverCenter = new(0f, 0f, -52f);
         static readonly Vector2 RiverSize = new(64f, 7f);
 
@@ -93,6 +106,7 @@ namespace TheAlas.EditorTools
                 EnsureFolder($"{PrefabDir}/{sub}");
 
             GameplaySetup.EnsureLayers();
+            trail = SampleTrail();
             var palette = CreatePalette();
             var prefabs = CreatePrefabs(palette);
             GameplaySetup.ConfigurePrefabs(prefabs, palette);
@@ -110,8 +124,9 @@ namespace TheAlas.EditorTools
 
             var rng = new Random(Seed);
             var logSegments = PlaceLogs(prefabs["Log_01"], environment, rng);
-            PlaceBushes(prefabs["Bush_01"], environment, rng);
-            PlaceTrees(TreeVariants("PF_Tree_Pinus_", prefabs["Tree_Pinus_01"]), TreeVariants("PF_Tree_Jati_", prefabs["Tree_Jati_01"]),
+            PlaceBushes(Variants("PF_Bush_", prefabs["Bush_01"]), environment, rng);
+            PlaceTwigs(prefabs["Twig_01"], environment, rng);
+            PlaceTrees(Variants("PF_Tree_Pinus_", prefabs["Tree_Pinus_01"]), Variants("PF_Tree_Jati_", prefabs["Tree_Jati_01"]),
                 environment, logSegments, rng);
             MarkStatic(environment);
             MarkStatic(landmarks);
@@ -185,8 +200,10 @@ namespace TheAlas.EditorTools
             ["Car"] = EnsurePrefab("Vehicle/PF_Car", (root, model) => BuildCar(root, model, p)),
             ["Tree_Pinus_01"] = EnsurePrefab("Environment/PF_Tree_Pinus_01", (_, m) => BuildPine(m, p)),
             ["Tree_Jati_01"] = EnsurePrefab("Environment/PF_Tree_Jati_01", (_, m) => BuildTeak(m, p)),
-            ["Bush_01"] = EnsurePrefab("Environment/PF_Bush_01", (r, m) => BuildBush(r, m, p)),
-            ["Log_01"] = EnsurePrefab("Environment/PF_Log_01", (r, m) => BuildLog(r, m, p)),
+            ["Bush_01"] = EnsurePrefab("Environment/PF_Bush_01", (r, m) => BuildBush(r, m, HazelPrefabs + "/Hazel_HealthySmall.prefab", 1.7f)),
+            ["Bush_02"] = EnsurePrefab("Environment/PF_Bush_02", (r, m) => BuildBush(r, m, HazelPrefabs + "/Hazel_WeatheredSmall.prefab", 1.4f)),
+            ["Log_01"] = EnsurePrefab("Environment/PF_Log_01", (r, m) => BuildLog(r, m)),
+            ["Twig_01"] = EnsurePrefab("Environment/PF_Twig_01", (r, m) => BuildTwig(r, m)),
             ["Landmark_GubukReyot"] = EnsurePrefab("Landmarks/PF_Landmark_GubukReyot", (_, m) => BuildHut(m, p)),
             ["Landmark_SumurTua"] = EnsurePrefab("Landmarks/PF_Landmark_SumurTua", (_, m) => BuildWell(m, p)),
             ["Landmark_PohonBeringin"] = EnsurePrefab("Landmarks/PF_Landmark_PohonBeringin", (_, m) => BuildBanyan(m, p)),
@@ -299,25 +316,105 @@ namespace TheAlas.EditorTools
             Primitive(m, PrimitiveType.Sphere, "Leaves", new Vector3(0f, 7f, 0f), new Vector3(5f, 3.5f, 5f), p.TeakLeaves, collider: false);
         }
 
-        static void BuildBush(GameObject root, Transform m, Palette p)
+        /// <summary>Semak dari model Hazel (World Trees), diskalakan ke tinggi semak; trigger mengikuti ukurannya.</summary>
+        static void BuildBush(GameObject root, Transform m, string sourcePrefab, float height)
         {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePrefab);
+            var bush = (GameObject)PrefabUtility.InstantiatePrefab(source, m);
+            var bounds = RendererBounds(bush);
+            float s = height / bounds.size.y;
+            // Dilebarkan ke samping supaya Hazel muda terbaca sebagai semak rimbun, bukan pohon kecil.
+            bush.transform.localScale = new Vector3(s * 1.5f, s, s * 1.5f);
+            bounds = RendererBounds(bush);
+
             var trigger = root.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
-            trigger.size = new Vector3(2.2f, 1.2f, 2.2f);
-            trigger.center = new Vector3(0f, 0.6f, 0f);
+            trigger.size = new Vector3(bounds.size.x * 0.8f, Mathf.Max(1.2f, bounds.size.y), bounds.size.z * 0.8f);
+            trigger.center = new Vector3(bounds.center.x, trigger.size.y / 2f, bounds.center.z);
             SetSurface(root.AddComponent<GroundSurface>(), SurfaceType.Bush);
-
-            Primitive(m, PrimitiveType.Sphere, "Leaves", new Vector3(0f, 0.45f, 0f), new Vector3(2.2f, 1.1f, 2.2f), p.Bush, collider: false);
         }
 
-        static void BuildLog(GameObject root, Transform m, Palette p)
+        static void BuildLog(GameObject root, Transform m)
         {
             // Tinggi 0,45 m adalah angka desain (batas lompat sekitar 3 unit beban), jadi collider-nya di root.
             var box = root.AddComponent<BoxCollider>();
             box.size = new Vector3(5f, 0.45f, 0.45f);
             box.center = new Vector3(0f, 0.225f, 0f);
 
-            Cylinder(m, "Trunk", new Vector3(0f, 0.225f, 0f), 0.45f, 5f, p.Log, collider: false, euler: new Vector3(0f, 0f, 90f));
+            var bark = BarkMaterial();
+            Cylinder(m, "Trunk", new Vector3(0f, 0.225f, 0f), 0.45f, 5f, bark, collider: false, euler: new Vector3(0f, 0f, 90f));
+            Cylinder(m, "BranchStub", new Vector3(0.9f, 0.4f, 0.1f), 0.12f, 0.7f, bark, collider: false, euler: new Vector3(25f, 0f, -35f));
+            Cylinder(m, "BranchStub", new Vector3(-1.4f, 0.35f, -0.12f), 0.09f, 0.5f, bark, collider: false, euler: new Vector3(-30f, 0f, 20f));
+        }
+
+        /// <summary>
+        /// Ranting kering: trigger rendah di root (Twig mendeteksi pemain), model utuh dan model patah.
+        /// Rigidbody kinematik supaya CharacterController pasti memicu OnTriggerEnter.
+        /// </summary>
+        static void BuildTwig(GameObject root, Transform m)
+        {
+            var trigger = root.AddComponent<BoxCollider>();
+            trigger.isTrigger = true;
+            trigger.size = new Vector3(1.1f, 0.4f, 0.5f);
+            trigger.center = new Vector3(0f, 0.2f, 0f);
+            root.AddComponent<Rigidbody>().isKinematic = true;
+
+            var audio = root.AddComponent<AudioSource>();
+            audio.playOnAwake = false;
+            audio.spatialBlend = 1f;
+            audio.minDistance = 1f;
+            audio.maxDistance = 25f;
+
+            var bark = BarkMaterial();
+            var whole = new GameObject("Whole").transform;
+            whole.SetParent(m, false);
+            Cylinder(whole, "Stick", new Vector3(0f, 0.02f, 0f), 0.035f, 0.95f, bark, collider: false, euler: new Vector3(0f, 0f, 90f));
+            Cylinder(whole, "Fork", new Vector3(0.18f, 0.025f, 0.07f), 0.02f, 0.3f, bark, collider: false, euler: new Vector3(0f, -35f, 90f));
+            Cylinder(whole, "Fork", new Vector3(-0.22f, 0.025f, -0.06f), 0.018f, 0.22f, bark, collider: false, euler: new Vector3(0f, 40f, 90f));
+
+            var broken = new GameObject("Broken").transform;
+            broken.SetParent(m, false);
+            Cylinder(broken, "HalfA", new Vector3(-0.24f, 0.02f, 0.03f), 0.035f, 0.46f, bark, collider: false, euler: new Vector3(0f, 12f, 90f));
+            Cylinder(broken, "HalfB", new Vector3(0.24f, 0.02f, -0.03f), 0.035f, 0.46f, bark, collider: false, euler: new Vector3(0f, -18f, 90f));
+            Cylinder(broken, "Fork", new Vector3(0.36f, 0.025f, 0.09f), 0.02f, 0.3f, bark, collider: false, euler: new Vector3(0f, -50f, 90f));
+            broken.gameObject.SetActive(false);
+
+            var twig = root.AddComponent<Twig>();
+            var so = new SerializedObject(twig);
+            so.FindProperty("whole").objectReferenceValue = whole.gameObject;
+            so.FindProperty("broken").objectReferenceValue = broken.gameObject;
+            so.FindProperty("audioSource").objectReferenceValue = audio;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Kulit kayu Spruce dari paket European Forests, dengan shader Lit biasa (tanpa angin).</summary>
+        static Material BarkMaterial()
+        {
+            const string path = Root + "/Art/Materials/M_Log_Bark.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat) return mat;
+
+            const string tex = "Assets/ThirdParty/Realistic Tree/Source/Textures/Spruce";
+            mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { enableInstancing = true };
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{tex}/Spruce_Bark.png"));
+            mat.SetTextureScale("_BaseMap", new Vector2(1f, 3f));
+            var normal = AssetDatabase.LoadAssetAtPath<Texture2D>($"{tex}/Spruce_Normal.png");
+            if (normal)
+            {
+                mat.SetTexture("_BumpMap", normal);
+                mat.EnableKeyword("_NORMALMAP");
+            }
+            mat.SetFloat("_Smoothness", 0.15f);
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
+        }
+
+        static Bounds RendererBounds(GameObject go)
+        {
+            var renderers = go.GetComponentsInChildren<Renderer>();
+            var b = renderers[0].bounds;
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+            return b;
         }
 
         static void BuildHut(Transform m, Palette p)
@@ -460,7 +557,8 @@ namespace TheAlas.EditorTools
             TerrainBuilder.Clear();
             if (TerrainBuilder.HasHeightmap)
             {
-                TerrainBuilder.Build(parent, MapHalfSize, p.Ground.GetColor("_BaseColor"), FlatAreas());
+                TerrainBuilder.Build(parent, MapHalfSize, FlatAreas(), DistanceToTrail,
+                    TerrainBuilder.Pad.Rect(RiverCenter, RiverSize + new Vector2(1f, 1f)));
                 return;
             }
 
@@ -469,6 +567,39 @@ namespace TheAlas.EditorTools
             ground.transform.SetParent(parent, false);
             ground.transform.localScale = new Vector3(MapHalfSize / 5f, 1f, MapHalfSize / 5f);
             ground.GetComponent<Renderer>().sharedMaterial = p.Ground;
+        }
+
+        /// <summary>Titik-titik jalur setapak, dihaluskan dengan Catmull-Rom tiap sekitar 1 m.</summary>
+        static List<Vector3> SampleTrail()
+        {
+            var points = new List<Vector3>();
+            var w = TrailWaypoints.Select(p => new Vector3(p.x, 0f, p.y)).ToArray();
+            for (int i = 0; i < w.Length - 1; i++)
+            {
+                Vector3 p0 = w[Mathf.Max(0, i - 1)], p1 = w[i], p2 = w[i + 1], p3 = w[Mathf.Min(w.Length - 1, i + 2)];
+                int steps = Mathf.CeilToInt(Vector3.Distance(p1, p2));
+                for (int s = 0; s < steps; s++)
+                {
+                    float t = s / (float)steps;
+                    points.Add(0.5f * (2f * p1 + (p2 - p0) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * (t * t)
+                                       + (3f * p1 - p0 - 3f * p2 + p3) * (t * t * t)));
+                }
+            }
+            points.Add(w[^1]);
+            return points;
+        }
+
+        internal static float DistanceToTrail(Vector3 pos)
+        {
+            if (trail == null) return float.MaxValue;
+            float best = float.MaxValue;
+            for (int i = 0; i < trail.Count - 1; i++)
+            {
+                Vector3 a = Flat(trail[i]), ab = Flat(trail[i + 1]) - a;
+                float t = Mathf.Clamp01(Vector3.Dot(Flat(pos) - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-4f));
+                best = Mathf.Min(best, (Flat(pos) - (a + ab * t)).magnitude);
+            }
+            return best;
         }
 
         /// <summary>Area yang diratakan di terrain: landmark, Kali Kering, mobil, dan titik muncul.</summary>
@@ -554,29 +685,45 @@ namespace TheAlas.EditorTools
             return segments;
         }
 
-        static void PlaceBushes(GameObject prefab, Transform environment, Random rng)
+        static void PlaceBushes(GameObject[] variants, Transform environment, Random rng)
         {
             var parent = new GameObject("Bushes").transform;
             parent.SetParent(environment, false);
+            GameObject Pick() => variants[rng.Next(variants.Length)];
 
             foreach (var spot in Landmarks)
             {
                 Vector3 pos = Vector3.Lerp(CarPosition, spot.Position, 0.55f);
                 if (!IsReserved(pos, 2f))
-                    SpawnScaled(prefab, pos, rng, parent, 1.2f, 1.8f);
+                    SpawnScaled(Pick(), pos, rng, parent, 1.2f, 1.6f);
             }
 
-            for (int placed = 0, tries = 0; placed < 60 && tries < 400; tries++)
+            for (int placed = 0, tries = 0; placed < 90 && tries < 600; tries++)
             {
                 var pos = RandomMapPoint(rng, 2f);
                 if (IsReserved(pos, 2f)) continue;
-                SpawnScaled(prefab, pos, rng, parent, 0.8f, 1.6f);
+                SpawnScaled(Pick(), pos, rng, parent, 0.8f, 1.3f);
                 placed++;
             }
         }
 
-        /// <summary>Semua varian pohon satu jenis (PF_Tree_Pinus_01, _02, …); minimal varian pertama.</summary>
-        static GameObject[] TreeVariants(string prefix, GameObject first)
+        /// <summary>Ranting kering tersebar di hutan (bukan di jalur setapak) sebagai jebakan suara.</summary>
+        static void PlaceTwigs(GameObject prefab, Transform environment, Random rng)
+        {
+            var parent = new GameObject("Twigs").transform;
+            parent.SetParent(environment, false);
+
+            for (int placed = 0, tries = 0; placed < 110 && tries < 800; tries++)
+            {
+                var pos = RandomMapPoint(rng, 2f);
+                if (IsReserved(pos, 0.5f)) continue;
+                SpawnScaled(prefab, pos, rng, parent, 0.8f, 1.2f);
+                placed++;
+            }
+        }
+
+        /// <summary>Semua varian satu jenis prefab (PF_Tree_Pinus_01, _02, …); minimal varian pertama.</summary>
+        static GameObject[] Variants(string prefix, GameObject first)
         {
             var variants = AssetDatabase.FindAssets($"{prefix} t:Prefab", new[] { $"{PrefabDir}/Environment" })
                 .Select(AssetDatabase.GUIDToAssetPath)
@@ -617,6 +764,8 @@ namespace TheAlas.EditorTools
             foreach (var spot in Landmarks)
                 if (spot.ClearRadius > 0f && Flat(pos - spot.Position).magnitude < spot.ClearRadius + margin)
                     return true;
+
+            if (DistanceToTrail(pos) < TrailHalfWidth + margin) return true;
 
             Vector3 r = pos - RiverCenter;
             return Mathf.Abs(r.x) < RiverSize.x / 2f + margin && Mathf.Abs(r.z) < RiverSize.y / 2f + 1f + margin;
