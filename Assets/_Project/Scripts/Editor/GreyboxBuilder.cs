@@ -88,11 +88,25 @@ namespace TheAlas.EditorTools
             new("KaliKering", RiverCenter, 0f), // area persegi panjang, dicek terpisah
         };
 
+        /// <summary>
+        /// Material greybox untuk landmark dan barang yang belum punya model final. Material dibuat saat
+        /// pertama dipakai, jadi placeholder yang sudah diganti model tim tidak ikut dibuat ulang.
+        /// </summary>
         internal class Palette
         {
-            public Material Ground, Trunk, PineLeaves, TeakLeaves, Bush, Log, Stone, Gravel;
-            public Material CarBody, CarGlass, Tire, CabinGlow, Wood, Thatch, StoneWall, WellHole, Grave, Root;
-            public Material ItemPart, CreatureBody, CreatureEye;
+            public Material Ground => Mat("Ground", "#1E2416");
+            public Material Trunk => Mat("Trunk", "#3A2C20");
+            public Material TeakLeaves => Mat("TeakLeaves", "#34401F");
+            public Material Log => Mat("Log", "#4A3826");
+            public Material Stone => Mat("Stone", "#55554F");
+            public Material Gravel => Mat("Gravel", "#6B675C");
+            public Material Wood => Mat("Wood", "#5A4632");
+            public Material Thatch => Mat("Thatch", "#6E5C3A");
+            public Material StoneWall => Mat("StoneWall", "#77736A");
+            public Material Grave => Mat("Grave", "#8A867A");
+            public Material Root => Mat("Root", "#2E241A");
+            /// <summary>Kuning lentera untuk barang wajib (palet GDD), sedikit menyala supaya terlihat di gelap.</summary>
+            public Material ItemPart => Mat("ItemPart", "#E0A63C", emission: 0.6f);
         }
 
         [MenuItem("Tools/The Alas/Bangun Greybox Hutan")]
@@ -115,7 +129,7 @@ namespace TheAlas.EditorTools
 
             GameplaySetup.EnsureLayers();
             trail = SampleTrail();
-            var palette = CreatePalette();
+            var palette = new Palette();
             var prefabs = CreatePrefabs(palette);
             GameplaySetup.ConfigurePrefabs(prefabs, palette);
 
@@ -154,52 +168,6 @@ namespace TheAlas.EditorTools
 
         // ---------- Material ----------
 
-        static Palette CreatePalette() => new()
-        {
-            Ground = Mat("Ground", "#1E2416"),
-            Trunk = Mat("Trunk", "#3A2C20"),
-            PineLeaves = Mat("PineLeaves", "#1F3321"),
-            TeakLeaves = Mat("TeakLeaves", "#34401F"),
-            Bush = Mat("Bush", "#2B3D1E"),
-            Log = Mat("Log", "#4A3826"),
-            Stone = Mat("Stone", "#55554F"),
-            Gravel = Mat("Gravel", "#6B675C"),
-            CarBody = Mat("CarBody", "#5C6B6E"),
-            CarGlass = Mat("CarGlass", "#1A2226"),
-            Tire = Mat("Tire", "#151515"),
-            CabinGlow = Mat("CabinGlow", "#E0A63C", emission: 2.5f),
-            Wood = Mat("Wood", "#5A4632"),
-            Thatch = Mat("Thatch", "#6E5C3A"),
-            StoneWall = Mat("StoneWall", "#77736A"),
-            WellHole = Mat("WellHole", "#050505"),
-            Grave = Mat("Grave", "#8A867A"),
-            Root = Mat("Root", "#2E241A"),
-            // Kuning lentera untuk barang wajib (palet GDD), sedikit menyala supaya terlihat di gelap.
-            ItemPart = Mat("ItemPart", "#E0A63C", emission: 0.6f),
-            CreatureBody = Mat("CreatureBody", "#121410"),
-            CreatureEye = EyeMaterial(),
-        };
-
-        /// <summary>
-        /// Mata makhluk memakai URP Unlit: warnanya (dari MaterialPropertyBlock) selalu tampil penuh.
-        /// Versi Lit + emisi hitam tidak bisa dipakai karena Unity mematikan kata kunci _EMISSION.
-        /// </summary>
-        static Material EyeMaterial()
-        {
-            string path = $"{MaterialDir}/M_Greybox_CreatureEye.mat";
-            var unlit = Shader.Find("Universal Render Pipeline/Unlit");
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (!mat)
-            {
-                mat = new Material(unlit);
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            if (mat.shader != unlit) mat.shader = unlit;
-            mat.SetColor("_BaseColor", Color.black);
-            EditorUtility.SetDirty(mat);
-            return mat;
-        }
-
         internal static Material Mat(string name, string hex, float emission = 0f)
         {
             string path = $"{MaterialDir}/M_Greybox_{name}.mat";
@@ -226,15 +194,15 @@ namespace TheAlas.EditorTools
         static Dictionary<string, GameObject> CreatePrefabs(Palette p) => new()
         {
             ["Player"] = EnsurePlayerPrefab(),
-            ["Car"] = EnsurePrefab("Vehicle/PF_Car", (root, model) => BuildCar(root, model, p)),
-            ["Tree_Pinus_01"] = EnsurePrefab("Environment/PF_Tree_Pinus_01", (_, m) => BuildPine(m, p)),
-            ["Tree_Jati_01"] = EnsurePrefab("Environment/PF_Tree_Jati_01", (_, m) => BuildTeak(m, p)),
+            ["Car"] = RequirePrefab("Vehicle/PF_Car"),
+            ["Tree_Pinus_01"] = RequirePrefab("Environment/PF_Tree_Pinus_01"),
+            ["Tree_Jati_01"] = RequirePrefab("Environment/PF_Tree_Jati_01"),
             ["Bush_01"] = EnsurePrefab("Environment/PF_Bush_01", (r, m) => BuildBush(r, m, HazelPrefabs + "/Hazel_HealthySmall.prefab", 1.7f)),
             ["Bush_02"] = EnsurePrefab("Environment/PF_Bush_02", (r, m) => BuildBush(r, m, HazelPrefabs + "/Hazel_WeatheredSmall.prefab", 1.4f)),
             ["Log_01"] = EnsurePrefab("Environment/PF_Log_01", (r, m) => BuildLog(r, m)),
             ["Twig_01"] = EnsurePrefab("Environment/PF_Twig_01", (r, m) => BuildTwig(r, m)),
             ["Landmark_GubukReyot"] = EnsurePrefab("Landmarks/PF_Landmark_GubukReyot", (_, m) => BuildHut(m, p)),
-            ["Landmark_SumurTua"] = EnsurePrefab("Landmarks/PF_Landmark_SumurTua", (_, m) => BuildWell(m, p)),
+            ["Landmark_SumurTua"] = RequirePrefab("Landmarks/PF_Landmark_SumurTua"),
             ["Landmark_PohonBeringin"] = EnsurePrefab("Landmarks/PF_Landmark_PohonBeringin", (_, m) => BuildBanyan(m, p)),
             ["Landmark_MakamKeramat"] = EnsurePrefab("Landmarks/PF_Landmark_MakamKeramat", (_, m) => BuildGraves(m, p)),
             ["Landmark_PosRonda"] = EnsurePrefab("Landmarks/PF_Landmark_PosRonda", (_, m) => BuildGuardPost(m, p)),
@@ -266,6 +234,18 @@ namespace TheAlas.EditorTools
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        /// <summary>
+        /// Prefab yang modelnya sudah final dari tim. Tidak pernah dibuat ulang sebagai placeholder:
+        /// kalau hilang, pulihkan dari Git.
+        /// </summary>
+        internal static GameObject RequirePrefab(string relativePath)
+        {
+            string path = $"{PrefabDir}/{relativePath}.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (!prefab) throw new FileNotFoundException($"Prefab final {path} tidak ada; pulihkan dari Git.");
             return prefab;
         }
 
@@ -315,42 +295,6 @@ namespace TheAlas.EditorTools
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             return prefab;
-        }
-
-        static void BuildCar(GameObject root, Transform m, Palette p)
-        {
-            var box = root.AddComponent<BoxCollider>();
-            box.size = new Vector3(1.9f, 1.9f, 4.4f);
-            box.center = new Vector3(0f, 0.95f, 0f);
-
-            Box(m, "Body", new Vector3(0f, 0.75f, 0f), new Vector3(1.9f, 0.8f, 4.4f), p.CarBody);
-            Box(m, "Cabin", new Vector3(0f, 1.5f, -0.3f), new Vector3(1.7f, 0.7f, 2.2f), p.CarGlass);
-            Box(m, "HoodOpen", new Vector3(0f, 1.6f, 1.75f), new Vector3(1.8f, 0.06f, 1.2f), p.CarBody, euler: new Vector3(-55f, 0f, 0f));
-            foreach (var x in new[] { -0.95f, 0.95f })
-            foreach (var z in new[] { -1.4f, 1.4f })
-                Cylinder(m, "Wheel", new Vector3(x, 0.33f, z), 0.65f, 0.25f, p.Tire, euler: new Vector3(0f, 0f, 90f));
-
-            Box(m, "CabinLamp", new Vector3(0f, 1.82f, -0.3f), new Vector3(0.3f, 0.04f, 0.15f), p.CabinGlow);
-            var lampLight = new GameObject("CabinLight").AddComponent<Light>();
-            lampLight.transform.SetParent(root.transform, false);
-            lampLight.transform.localPosition = new Vector3(0f, 1.7f, -0.3f);
-            lampLight.type = LightType.Point;
-            lampLight.range = 9f;
-            lampLight.intensity = 4f;
-            lampLight.color = new Color32(0xE0, 0xA6, 0x3C, 0xFF);
-            lampLight.shadows = LightShadows.None;
-        }
-
-        static void BuildPine(Transform m, Palette p)
-        {
-            Cylinder(m, "Trunk", new Vector3(0f, 4.5f, 0f), 0.35f, 9f, p.Trunk);
-            Primitive(m, PrimitiveType.Capsule, "Leaves", new Vector3(0f, 8f, 0f), new Vector3(2.6f, 3.5f, 2.6f), p.PineLeaves, collider: false);
-        }
-
-        static void BuildTeak(Transform m, Palette p)
-        {
-            Cylinder(m, "Trunk", new Vector3(0f, 3f, 0f), 0.5f, 6f, p.Trunk);
-            Primitive(m, PrimitiveType.Sphere, "Leaves", new Vector3(0f, 7f, 0f), new Vector3(5f, 3.5f, 5f), p.TeakLeaves, collider: false);
         }
 
         /// <summary>Semak dari model Hazel (World Trees), diskalakan ke tinggi semak; trigger mengikuti ukurannya.</summary>
@@ -486,15 +430,6 @@ namespace TheAlas.EditorTools
             Box(m, "WallFrontR", new Vector3((door + side) / 2f, height / 2f, half), new Vector3(side, height, wall), p.Wood);
             Box(m, "DoorLintel", new Vector3(0f, height - 0.3f, half), new Vector3(door, 0.6f, wall), p.Wood);
             Box(m, "Roof", new Vector3(0f, height + 0.25f, 0f), new Vector3(size + 0.8f, 0.15f, size + 0.8f), p.Thatch, euler: new Vector3(8f, 0f, 0f));
-        }
-
-        static void BuildWell(Transform m, Palette p)
-        {
-            Cylinder(m, "Ring", new Vector3(0f, 0.45f, 0f), 1.8f, 0.9f, p.StoneWall);
-            Cylinder(m, "Hole", new Vector3(0f, 0.91f, 0f), 1.4f, 0.02f, p.WellHole, collider: false);
-            Box(m, "PostL", new Vector3(-0.85f, 1.3f, 0f), new Vector3(0.15f, 1.8f, 0.15f), p.Wood);
-            Box(m, "PostR", new Vector3(0.85f, 1.3f, 0f), new Vector3(0.15f, 1.8f, 0.15f), p.Wood);
-            Cylinder(m, "Crossbar", new Vector3(0f, 2.1f, 0f), 0.12f, 1.9f, p.Wood, collider: false, euler: new Vector3(0f, 0f, 90f));
         }
 
         static void BuildBanyan(Transform m, Palette p)

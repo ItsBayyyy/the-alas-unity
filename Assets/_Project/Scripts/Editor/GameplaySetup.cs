@@ -101,8 +101,7 @@ namespace TheAlas.EditorTools
             foreach (var (id, info) in LandmarkInfo)
                 Configure(prefabs[$"Landmark_{id}"], root => ConfigureLandmark(root, info.displayName, info.spawns));
 
-            prefabs["Creature"] = GreyboxBuilder.EnsurePrefab("Creature/PF_Creature",
-                (root, model) => BuildCreature(root, model, palette));
+            prefabs["Creature"] = GreyboxBuilder.RequirePrefab("Creature/PF_Creature");
             Configure(prefabs["Creature"], ConfigureCreature);
 
             ConfigureAudio(prefabs);
@@ -547,17 +546,6 @@ namespace TheAlas.EditorTools
             Wire(GetOrAdd<Item>(root), ("data", data));
         }
 
-        static void BuildCreature(GameObject root, Transform m, GreyboxBuilder.Palette p)
-        {
-            // Sosok tinggi kurus sekitar 3 m, lengan menjuntai hampir ke tanah (GDD).
-            GreyboxBuilder.Primitive(m, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.55f, 0f), new Vector3(0.55f, 1.05f, 0.4f), p.CreatureBody, collider: false);
-            GreyboxBuilder.Primitive(m, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.8f, 0.05f), new Vector3(0.32f, 0.38f, 0.32f), p.CreatureBody, collider: false);
-            GreyboxBuilder.Box(m, "ArmL", new Vector3(-0.36f, 1.45f, 0.05f), new Vector3(0.09f, 1.9f, 0.09f), p.CreatureBody, collider: false, euler: new Vector3(0f, 0f, -4f));
-            GreyboxBuilder.Box(m, "ArmR", new Vector3(0.36f, 1.45f, 0.05f), new Vector3(0.09f, 1.9f, 0.09f), p.CreatureBody, collider: false, euler: new Vector3(0f, 0f, 4f));
-            GreyboxBuilder.Primitive(m, PrimitiveType.Sphere, "EyeL", new Vector3(-0.08f, 2.84f, 0.19f), Vector3.one * 0.06f, p.CreatureEye, collider: false);
-            GreyboxBuilder.Primitive(m, PrimitiveType.Sphere, "EyeR", new Vector3(0.08f, 2.84f, 0.19f), Vector3.one * 0.06f, p.CreatureEye, collider: false);
-        }
-
         static void ConfigureCreature(GameObject root)
         {
             root.layer = LayerMask.NameToLayer("Creature");
@@ -583,6 +571,7 @@ namespace TheAlas.EditorTools
             var ai = GetOrAdd<CreatureAI>(root);
             var eyes = root.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("Eye")).Cast<Object>().ToArray();
             SetReferences(ai, "eyes", eyes);
+            GetOrAdd<CreatureAnimator>(root);
         }
 
         // ---------- Navmesh ----------

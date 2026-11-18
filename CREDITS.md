@@ -18,6 +18,7 @@ Daftar ini menjadi sumber untuk halaman kredit di itch.io. Setiap aset dari luar
 |---|---|---|
 | Aki, Kunci Mobil, Filter Oli, Stir (model dan tekstur) | Gung Wah | `Assets/_Project/Art/Props/` |
 | Kontur tanah peta (potongan 160 × 160 m dari terrain 780 × 889 m buatannya) | Gung Wah | `Source/Terrain/Hutan_Height_129.r16`, `Assets/_Project/Scenes/Hutan_Terrain.asset` |
+| Penunggu alas: model, tekstur (body, kain, celana, kalung Jawa, gigi), dan animasi | Rafael (rig dan animasi tampaknya dari Mixamo; perlu dikonfirmasi Rafael) | `Assets/_Project/Art/Characters/Creature/` |
 | Efek suara (langkah, semak, napas, detak jantung, makhluk, barang, mobil), ambience hutan, jangkrik, tonggeret, musik bahaya, musik menang | Jaya | `Assets/_Project/Audio/` |
 | Pilihan lapisan tanah, sumur, dan props peternakan untuk map | Gung Wah | Sumur Tua, halaman Gubuk Reyot, lapisan `TL_Grass` dan `TL_Stones` |
 
