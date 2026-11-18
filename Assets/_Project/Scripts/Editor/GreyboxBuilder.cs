@@ -633,10 +633,18 @@ namespace TheAlas.EditorTools
             return false;
         }
 
+        /// <summary>
+        /// Static batching untuk benda diam, kecuali pohon. Shader pohon menekuk verteks (angin)
+        /// berdasarkan posisi ruang objek; static batching menggabungkan mesh ke ruang dunia, sehingga
+        /// tekukannya membesar sesuai jarak dari pusat peta dan pohon tampak berlari serta membesar-mengecil.
+        /// </summary>
         static void MarkStatic(Transform root)
         {
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
+            {
+                bool isTree = t.GetComponentInParent<LODGroup>(true) || t.GetComponentInChildren<LODGroup>(true);
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, isTree ? 0 : StaticEditorFlags.BatchingStatic);
+            }
         }
 
         // ---------- Helper ----------
