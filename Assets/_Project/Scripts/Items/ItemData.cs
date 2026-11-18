@@ -17,7 +17,13 @@ namespace TheAlas.Items
         [SerializeField, Min(0)] int value;
         [SerializeField] GameObject worldPrefab;
 
+        [Header("Audio (sesuai bahan barang)")]
+        [SerializeField] AudioClip[] pickupClips;
+        [SerializeField] AudioClip[] impactClips;
+
         public string DisplayName => displayName;
+        public AudioClip[] PickupClips => pickupClips;
+        public AudioClip[] ImpactClips => impactClips;
         public float Weight => weight;
         public bool IsCarPart => isCarPart;
         public int Value => value;

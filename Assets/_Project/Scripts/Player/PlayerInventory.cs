@@ -93,7 +93,7 @@ namespace TheAlas.Player
             // Jongkok berarti meletakkan pelan; berdiri berarti menjatuhkan.
             float height = motor.IsCrouching ? 0.15f : 0.9f;
             Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * height;
-            item.Release(position, transform.rotation, Vector3.zero, thrown: false);
+            item.Release(position, transform.rotation, Vector3.zero, thrown: false, impactVolume: motor.IsCrouching ? 0.25f : 0.7f);
             noise.AddSpike(motor.IsCrouching ? item.Data.PlaceNoise : item.Data.DropNoise);
         }
 
@@ -108,7 +108,7 @@ namespace TheAlas.Player
             float speed = Mathf.Sqrt(item.Data.ThrowDistance * -Physics.gravity.y / Mathf.Sin(2f * launchAngle * Mathf.Deg2Rad));
 
             Vector3 position = viewPoint.position + viewPoint.forward * 0.5f;
-            item.Release(position, Quaternion.LookRotation(direction), direction * speed, thrown: true);
+            item.Release(position, Quaternion.LookRotation(direction), direction * speed, thrown: true, impactVolume: 1f);
             noise.AddSpike(throwNoise);
         }
 

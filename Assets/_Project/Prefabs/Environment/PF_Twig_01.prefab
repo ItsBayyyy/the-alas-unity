@@ -413,7 +413,8 @@ MonoBehaviour:
   crouchSnapNoise: 12
   noisePerLoad: 2
   audioSource: {fileID: 7105678890287564493}
-  snapClips: []
+  snapClips:
+  - {fileID: 8300000, guid: b53a417b41afad34bbea5a2dc673ed02, type: 3}
 --- !u!1 &5176107793322597644
 GameObject:
   m_ObjectHideFlags: 0

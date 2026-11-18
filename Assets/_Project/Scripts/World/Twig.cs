@@ -1,3 +1,4 @@
+using TheAlas.Audio;
 using TheAlas.Player;
 using UnityEngine;
 
@@ -41,11 +42,7 @@ namespace TheAlas.World
             PlaySnap(loudness);
         }
 
-        void PlaySnap(float loudness)
-        {
-            if (!audioSource || snapClips == null || snapClips.Length == 0) return;
-            audioSource.pitch = Random.Range(0.9f, 1.1f);
-            audioSource.PlayOneShot(snapClips[Random.Range(0, snapClips.Length)], Mathf.Clamp01(loudness / 40f));
-        }
+        void PlaySnap(float loudness) =>
+            AudioClips.PlayRandom(audioSource, snapClips, Mathf.Clamp01(loudness / 40f), 0.1f);
     }
 }

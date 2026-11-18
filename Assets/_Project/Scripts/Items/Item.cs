@@ -1,3 +1,4 @@
+using TheAlas.Audio;
 using TheAlas.Core;
 using TheAlas.Player;
 using UnityEngine;
@@ -17,6 +18,8 @@ namespace TheAlas.Items
 
         Rigidbody body;
         bool awaitingImpact;
+        bool impactSoundPending;
+        float impactVolume;
 
         public ItemData Data => data;
 
@@ -34,25 +37,42 @@ namespace TheAlas.Items
         public void PickUp()
         {
             awaitingImpact = false;
+            impactSoundPending = false;
+            PlayAtPoint(data.PickupClips, 0.8f);
             gameObject.SetActive(false);
         }
 
-        public void Release(Vector3 position, Quaternion rotation, Vector3 velocity, bool thrown)
+        /// <param name="impactVolume">Kerasnya bunyi saat menyentuh tanah: diletakkan pelan, dijatuhkan, atau dilempar.</param>
+        public void Release(Vector3 position, Quaternion rotation, Vector3 velocity, bool thrown, float impactVolume)
         {
             transform.SetPositionAndRotation(position, rotation);
             gameObject.SetActive(true);
             body.linearVelocity = velocity;
             body.angularVelocity = thrown ? Random.insideUnitSphere * 8f : Vector3.zero;
             awaitingImpact = thrown;
+            impactSoundPending = true;
+            this.impactVolume = impactVolume;
         }
 
         void OnCollisionEnter(Collision collision)
         {
+            if (impactSoundPending)
+            {
+                impactSoundPending = false;
+                PlayAtPoint(data.ImpactClips, impactVolume);
+            }
+
             if (!awaitingImpact || collision.relativeVelocity.magnitude < minImpactSpeed) return;
 
             // Bunyi jatuh terdengar di titik jatuh, bukan di posisi pemain: inilah yang membuat lemparan jadi umpan.
             awaitingImpact = false;
             NoiseEvents.Emit(transform.position, data.ThrowImpactNoise);
+        }
+
+        void PlayAtPoint(AudioClip[] clips, float volume)
+        {
+            var clip = AudioClips.Pick(clips);
+            if (clip) AudioSource.PlayClipAtPoint(clip, transform.position, volume);
         }
     }
 }

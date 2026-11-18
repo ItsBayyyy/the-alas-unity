@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TheAlas.Audio;
 using TheAlas.Core;
 using TheAlas.Creature;
 using TheAlas.Items;
@@ -103,6 +104,8 @@ namespace TheAlas.EditorTools
             prefabs["Creature"] = GreyboxBuilder.EnsurePrefab("Creature/PF_Creature",
                 (root, model) => BuildCreature(root, model, palette));
             Configure(prefabs["Creature"], ConfigureCreature);
+
+            ConfigureAudio(prefabs);
         }
 
         public static void PopulateScene(Dictionary<string, GameObject> prefabs, Transform gameplay, GameObject player, GameObject carObject)
@@ -130,9 +133,152 @@ namespace TheAlas.EditorTools
             Wire(hud, ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
                 ("interactor", interactor), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
 
+            BuildAtmosphere(systems, creature);
             BakeNavMesh();
             BuildIntro(systems, player, carObject.transform,
-                new Behaviour[] { motor, player.GetComponent<PlayerLook>(), inventory, interactor, round, creature, hud });
+                new Behaviour[] { motor, player.GetComponent<PlayerLook>(), inventory, interactor, round, creature,
+                    creatureObject.GetComponent<CreatureAudio>(), hud });
+        }
+
+        // ---------- Audio (rekaman Jaya) ----------
+
+        const string AudioDir = GreyboxBuilder.Root + "/Audio";
+
+        static AudioClip[] Sfx(params string[] names) =>
+            names.Select(name => AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioDir}/SFX/SFX_{name}.wav")).Where(clip => clip).ToArray();
+
+        static AudioClip Clip(string path) => AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioDir}/{path}.wav");
+
+        /// <summary>Klip barang menurut bahannya.</summary>
+        static readonly Dictionary<string, string> ItemMaterial = new()
+        {
+            ["Aki"] = "Metal", ["FilterOli"] = "Metal", ["JerikenBensin"] = "Metal", ["KunciMobil"] = "Metal",
+            ["Busi"] = "Ceramic", ["Stir"] = "Wood",
+        };
+
+        static void ConfigureAudio(Dictionary<string, GameObject> prefabs)
+        {
+            ConfigureAudioImport();
+
+            Configure(prefabs["Player"], root =>
+            {
+                var audio = GetOrAdd<PlayerAudio>(root);
+                Wire(audio, ("source", EnsureSource(root, spatial: 0f)));
+                SetReferences(audio, "groundSteps", Sfx("Step_Leaves_01", "Step_Ground_01"));
+                SetReferences(audio, "gravelSteps", Sfx("Step_Gravel_01"));
+                SetReferences(audio, "bushSteps", Sfx("Bush_Rustle_01", "Bush_Rustle_02", "Bush_Rustle_03"));
+                SetReferences(audio, "heavySteps", Sfx("Step_Heavy_01"));
+                SetReferences(audio, "breathClips", Sfx("Player_Breath_01"));
+                SetReferences(audio, "recoverClips", Sfx("Player_BreathCalm_01"));
+            });
+
+            Configure(prefabs["Creature"], root =>
+            {
+                var audio = GetOrAdd<CreatureAudio>(root);
+                Wire(audio, ("source", EnsureSource(root, spatial: 1f, minDistance: 2f, maxDistance: 45f)));
+                SetReferences(audio, "growlClips", Sfx("Creature_Growl_01", "Creature_Growl_02"));
+                SetReferences(audio, "sniffClips", Sfx("Creature_Sniff_01"));
+            });
+
+            Configure(prefabs["Car"], root =>
+            {
+                var car = root.GetComponent<Car>();
+                Wire(car, ("audioSource", EnsureSource(root, spatial: 1f, minDistance: 3f, maxDistance: 60f)));
+                SetReferences(car, "trunkClips", Sfx("Car_Trunk_01"));
+                SetReferences(car, "doorClips", Sfx("Car_Door_01"));
+                SetReferences(car, "engineClips", Sfx("Car_EngineStart_01"));
+                SetReferences(car, "starterFailClips", Sfx("Car_StarterFail_01"));
+            });
+
+            // Belum ada rekaman ranting patah; sementara bunyi kayu jatuh, dinaikkan nadanya oleh variasi acak.
+            Configure(prefabs["Twig_01"], root => SetReferences(root.GetComponent<Twig>(), "snapClips", Sfx("Item_Wood_Drop_01")));
+
+            foreach (var (id, material) in ItemMaterial)
+            {
+                var data = AssetDatabase.LoadAssetAtPath<ItemData>($"{ItemDataDir}/ITEM_{id}.asset");
+                if (!data) continue;
+                SetReferences(data, "pickupClips", material switch
+                {
+                    "Ceramic" => Sfx("Item_Ceramic_Pickup_01", "Item_Ceramic_Pickup_02"),
+                    "Wood" => Sfx("Item_Wood_Pickup_01"),
+                    _ => Sfx("Item_Metal_Pickup_01"),
+                });
+                SetReferences(data, "impactClips", material switch
+                {
+                    "Ceramic" => Sfx("Item_Ceramic_Drop_01", "Item_Ceramic_Drop_02", "Item_Ceramic_Drop_03"),
+                    "Wood" => Sfx("Item_Wood_Drop_01"),
+                    _ => Sfx("Item_Metal_Drop_01"),
+                });
+                EditorUtility.SetDirty(data);
+            }
+        }
+
+        /// <summary>
+        /// Efek suara mono (diposisikan 3D, ukuran setengah), ambience dan musik stereo dengan kompresi
+        /// lebih kuat supaya unduhan WebGL tetap kecil.
+        /// </summary>
+        static void ConfigureAudioImport()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AudioDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetImporter.GetAtPath(path) is not AudioImporter importer) continue;
+
+                bool isSfx = path.Contains("/SFX/");
+                var settings = importer.defaultSampleSettings;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = isSfx ? 0.6f : 0.4f;
+                settings.loadType = isSfx ? AudioClipLoadType.DecompressOnLoad : AudioClipLoadType.CompressedInMemory;
+                if (importer.forceToMono == isSfx && importer.defaultSampleSettings.quality == settings.quality) continue;
+
+                importer.forceToMono = isSfx;
+                importer.defaultSampleSettings = settings;
+                importer.SaveAndReimport();
+            }
+        }
+
+        static AudioSource EnsureSource(GameObject go, float spatial, float minDistance = 1f, float maxDistance = 30f)
+        {
+            var source = GetOrAdd<AudioSource>(go);
+            source.playOnAwake = false;
+            source.spatialBlend = spatial;
+            source.minDistance = minDistance;
+            source.maxDistance = maxDistance;
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            return source;
+        }
+
+        /// <summary>Ambience berulang, detak jantung, musik bahaya, dan bunyi akhir ronde (2D) di objek Systems.</summary>
+        static void BuildAtmosphere(GameObject systems, CreatureAI creature)
+        {
+            var root = new GameObject("Audio");
+            root.transform.SetParent(systems.transform, false);
+
+            AudioSource Source(string name, AudioClip clip, float volume, bool loop)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(root.transform, false);
+                var source = EnsureSource(go, spatial: 0f);
+                source.clip = clip;
+                source.volume = volume;
+                source.loop = loop;
+                return source;
+            }
+
+            var atmosphere = systems.AddComponent<AtmosphereAudio>();
+            Wire(atmosphere, ("creature", creature),
+                ("heartbeatSource", Source("Heartbeat", null, 1f, false)),
+                ("heartbeatClip", Clip("SFX/SFX_Player_Heartbeat_01")),
+                ("dangerMusic", Source("DangerMusic", Clip("Music/MUS_Danger_Loop"), 0f, true)),
+                ("stingerSource", Source("Stinger", null, 1f, false)),
+                ("winClip", Clip("Music/MUS_Win")),
+                ("caughtClip", Clip("SFX/SFX_Creature_Devour_01")));
+            SetReferences(atmosphere, "ambienceLoops", new Object[]
+            {
+                Source("AmbienceForest", Clip("Ambience/AMB_Forest_Night_Loop"), 0.6f, true),
+                Source("AmbienceCrickets", Clip("Ambience/AMB_Crickets_Loop"), 0.2f, true),
+                Source("AmbienceCicada", Clip("Ambience/AMB_Cicada_Loop"), 0.12f, true),
+            });
         }
 
         // ---------- Cutscene pembuka ----------

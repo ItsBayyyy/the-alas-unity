@@ -17,3 +17,7 @@ MonoBehaviour:
   isCarPart: 1
   value: 0
   worldPrefab: {fileID: 597705305186794585, guid: 028b9917a559f5f4ea92ce6a5ac85be2, type: 3}
+  pickupClips:
+  - {fileID: 8300000, guid: f3c1728caa5a7614982f610e3cceb969, type: 3}
+  impactClips:
+  - {fileID: 8300000, guid: b53a417b41afad34bbea5a2dc673ed02, type: 3}
