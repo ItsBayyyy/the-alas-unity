@@ -35,6 +35,9 @@ Assets/_Project/
 └── Scripts/             Bayu dan Jaya (sistem audio, mikrofon)
     ├── Core/  Player/  Items/  Creature/  World/  UI/  Editor/
 
+Assets/ThirdParty/       aset dari luar tim, struktur folder asli paketnya dipertahankan;
+                         hanya file yang benar-benar dipakai yang disalin, dan wajib tercatat di CREDITS.md
+
 Source/                  file mentah, bukti karya dibuat setelah 10 November
 ├── Blender/             .blend
 ├── Audio/               rekaman mentah, proyek Audacity/Reaper
