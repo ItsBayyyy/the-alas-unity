@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TheAlas.Player;
 using TheAlas.World;
 using UnityEditor;
@@ -110,7 +111,8 @@ namespace TheAlas.EditorTools
             var rng = new Random(Seed);
             var logSegments = PlaceLogs(prefabs["Log_01"], environment, rng);
             PlaceBushes(prefabs["Bush_01"], environment, rng);
-            PlaceTrees(prefabs["Tree_Pinus_01"], prefabs["Tree_Jati_01"], environment, logSegments, rng);
+            PlaceTrees(TreeVariants("PF_Tree_Pinus_", prefabs["Tree_Pinus_01"]), TreeVariants("PF_Tree_Jati_", prefabs["Tree_Jati_01"]),
+                environment, logSegments, rng);
             MarkStatic(environment);
             MarkStatic(landmarks);
 
@@ -234,7 +236,8 @@ namespace TheAlas.EditorTools
             var cam = cameraRoot.AddComponent<Camera>();
             cam.fieldOfView = 70f;
             cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 100f;
+            // Kabut (densitas 0,09) menutup ~98% pemandangan di 45 m; lebih jauh dari itu hanya membuang render.
+            cam.farClipPlane = 45f;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = FogColor;
             cameraRoot.AddComponent<UniversalAdditionalCameraData>();
@@ -572,7 +575,19 @@ namespace TheAlas.EditorTools
             }
         }
 
-        static void PlaceTrees(GameObject pine, GameObject teak, Transform environment,
+        /// <summary>Semua varian pohon satu jenis (PF_Tree_Pinus_01, _02, …); minimal varian pertama.</summary>
+        static GameObject[] TreeVariants(string prefix, GameObject first)
+        {
+            var variants = AssetDatabase.FindAssets($"{prefix} t:Prefab", new[] { $"{PrefabDir}/Environment" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Where(path => Path.GetFileNameWithoutExtension(path).StartsWith(prefix))
+                .OrderBy(path => path)
+                .Select(AssetDatabase.LoadAssetAtPath<GameObject>)
+                .ToArray();
+            return variants.Length > 0 ? variants : new[] { first };
+        }
+
+        static void PlaceTrees(GameObject[] pines, GameObject[] teaks, Transform environment,
             List<(Vector3 a, Vector3 b)> logs, Random rng)
         {
             var parent = new GameObject("Trees").transform;
@@ -587,7 +602,8 @@ namespace TheAlas.EditorTools
                 var pos = new Vector3(x + Range(rng, -jitter, jitter), 0f, z + Range(rng, -jitter, jitter));
                 if (IsReserved(pos, 1.5f) || NearAnyLog(pos, logs, 1.5f)) continue;
 
-                SpawnScaled(rng.NextDouble() < 0.6 ? pine : teak, pos, rng, parent, 0.85f, 1.2f);
+                var species = rng.NextDouble() < 0.6 ? pines : teaks;
+                SpawnScaled(species[rng.Next(species.Length)], pos, rng, parent, 0.85f, 1.2f);
                 count++;
             }
             Debug.Log($"[Greybox] {count} pohon ditempatkan");
