@@ -52,7 +52,7 @@ namespace TheAlas.EditorTools
         }
 
         // Daftar dan urutannya mengikuti kertas tugas Citari: Kunci, Knalpot, Aki, Setir, Filter Oli.
-        // Knalpot belum punya model, jadi placeholder-nya pipa (silinder rebah).
+        // Ukuran dan bentuk silinder hanya untuk placeholder kalau prefab belum ada; Knalpot sudah memakai model Gung Wah.
         static readonly PartSpec[] Parts =
         {
             new("KunciMobil", "Kunci Mobil", 0.5f, new Vector3(0.26f, 0.06f, 0.12f)),
