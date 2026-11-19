@@ -169,7 +169,12 @@ namespace TheAlas.EditorTools
                 new Behaviour[] { motor, look, inventory, interactor, round, creature,
                     creatureObject.GetComponent<CreatureAudio>(), hud });
             Wire(intro, ("skin", skin));
-            Wire(systems.AddComponent<MainMenu>(), ("skin", skin), ("intro", intro));
+            var menuMusic = new GameObject("MenuMusic");
+            menuMusic.transform.SetParent(systems.transform, false);
+            var menuSource = EnsureSource(menuMusic, spatial: 0f);
+            menuSource.clip = Clip("Music/MUS_MainMenu_Loop");
+            menuSource.loop = true;
+            Wire(systems.AddComponent<MainMenu>(), ("skin", skin), ("intro", intro), ("music", menuSource));
         }
 
         // ---------- UI (desain Citari) ----------
