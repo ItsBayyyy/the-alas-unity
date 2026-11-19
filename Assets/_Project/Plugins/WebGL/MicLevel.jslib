@@ -67,5 +67,28 @@ mergeInto(LibraryManager.library, {
 
   MicLevel_State: function () {
     return window.alasMic ? window.alasMic.state : 0;
+  },
+
+  // Unity meminta Pointer Lock setiap kali kursor dikunci dari skrip (menutup pengaturan, lanjut dari
+  // jeda). Di luar klik pemain browser menolaknya, dan penolakan yang tidak ditangkap muncul sebagai
+  // error fatal Unity. Penolakan itu diabaikan; klik berikutnya di kanvas mengunci kursor lagi.
+  PointerLockGuard_Install: function () {
+    if (window.alasPointerGuard) return;
+    window.alasPointerGuard = true;
+    var original = Element.prototype.requestPointerLock;
+    if (!original) return;
+    Element.prototype.requestPointerLock = function () {
+      try {
+        var result = original.apply(this, arguments);
+        if (result && typeof result.catch === 'function') result.catch(function () {});
+        return result;
+      } catch (e) {
+        return undefined;
+      }
+    };
+    window.addEventListener('unhandledrejection', function (event) {
+      var reason = event.reason;
+      if (reason && reason.name === 'NotAllowedError' && /Pointer Lock/i.test(String(reason.message))) event.preventDefault();
+    });
   }
 });

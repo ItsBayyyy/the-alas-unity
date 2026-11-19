@@ -25,6 +25,13 @@ namespace TheAlas.Player
 
         float level;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")] static extern void PointerLockGuard_Install();
+
+        // Komponen ini ada di setiap ronde sejak awal, jadi tempat yang pas untuk memasang pengaman Pointer Lock.
+        void Awake() => PointerLockGuard_Install();
+#endif
+
         public static MicState State { get; private set; }
 
         /// <summary>Kerasnya suara mikrofon 0–1, untuk bar di layar pengaturan.</summary>
