@@ -47,17 +47,16 @@ namespace TheAlas.Creature
         [Header("Ingatan")]
         [Tooltip("Batas lama menuju titik suara keras terakhir sebelum Memburu turun ke Menyelidiki")]
         [SerializeField] float huntMemory = 10f;
-        [Tooltip("Lama mencari di titik bunyi sebelum kembali Berkeliaran")]
-        [SerializeField] float searchDuration = 2.8f;
+        [Tooltip("Lama mencari di titik bunyi terakhir; kalau pemain tetap diam, makhluk menyerah dan pergi")]
+        [SerializeField] float searchDuration = 5f;
         [SerializeField] float arriveDistance = 1.2f;
 
         [Header("Berkeliaran")]
+        [Tooltip("Makhluk buta: berkeliaran di sekitar posisinya sendiri, tidak pernah tahu letak pemain tanpa suara")]
         [SerializeField] Vector2 retargetInterval = new(5f, 9f);
-        [Tooltip("Peluang mengarah ke sekitar pemain di awal dan akhir ronde (GDD: 20% → 75%)")]
-        [SerializeField] Vector2 playerBias = new(0.2f, 0.75f);
-        [SerializeField] float finalMinuteBias = 0.9f;
-        [SerializeField] float nearPlayerRadius = 24f;
         [SerializeField] float roamRadius = 40f;
+        [Tooltip("Saat bangun karena barang pertama diambil, makhluk menyelidiki titik sekitar sejauh ini dari pemain")]
+        [SerializeField] float nearPlayerRadius = 24f;
 
         [Header("Belok (derajat per detik)")]
         [Tooltip("Pelan saat berkeliaran supaya tidak terlihat berputar-putar; cepat hanya saat memburu")]
@@ -267,14 +266,8 @@ namespace TheAlas.Creature
 
         void PickWanderTarget()
         {
-            var round = RoundManager.Instance;
-            float bias = round.IsFinalMinute ? finalMinuteBias : Mathf.Lerp(playerBias.x, playerBias.y, round.Progress);
-
-            Vector3 center = Random.value < bias ? player.transform.position : transform.position;
-            float radius = center == player.transform.position ? nearPlayerRadius : roamRadius;
-            Vector2 offset = Random.insideUnitCircle * radius;
-
-            SetTarget(center + new Vector3(offset.x, 0f, offset.y), immediate: true);
+            Vector2 offset = Random.insideUnitCircle * roamRadius;
+            SetTarget(transform.position + new Vector3(offset.x, 0f, offset.y), immediate: true);
             wanderTimer = Random.Range(retargetInterval.x, retargetInterval.y);
         }
 

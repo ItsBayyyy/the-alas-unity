@@ -110,13 +110,11 @@ MonoBehaviour:
   positionErrorPerMeter: 0.12
   maxPositionError: 7
   huntMemory: 10
-  searchDuration: 2.8
+  searchDuration: 5
   arriveDistance: 1.2
   retargetInterval: {x: 5, y: 9}
-  playerBias: {x: 0.2, y: 0.75}
-  finalMinuteBias: 0.9
-  nearPlayerRadius: 24
   roamRadius: 40
+  nearPlayerRadius: 24
   wanderTurnSpeed: 120
   investigateTurnSpeed: 200
   huntTurnSpeed: 420
