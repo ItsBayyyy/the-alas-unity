@@ -36,7 +36,7 @@ namespace TheAlas.Audio
 
         void Update()
         {
-            if (RoundManager.Instance.IsOver) return;
+            if (RoundManager.Instance.IsOver || ai.IsDormant) return;
 
             if (ai.State != lastState)
             {

@@ -38,28 +38,28 @@ namespace TheAlas.EditorTools
             public readonly string Id, DisplayName;
             public readonly float Weight;
             public readonly Vector3 Size;
-            /// <summary>Placeholder berbentuk roda berdiri (sumbu putar = X), bukan kotak.</summary>
-            public readonly bool IsWheel;
+            /// <summary>Placeholder silinder rebah dengan sumbu X (roda atau pipa), bukan kotak.</summary>
+            public readonly bool IsCylinder;
 
-            public PartSpec(string id, string displayName, float weight, Vector3 size, bool isWheel = false)
+            public PartSpec(string id, string displayName, float weight, Vector3 size, bool isCylinder = false)
             {
                 Id = id;
                 DisplayName = displayName;
                 Weight = weight;
                 Size = size;
-                IsWheel = isWheel;
+                IsCylinder = isCylinder;
             }
         }
 
-        // Daftar dan urutannya mengikuti kertas tugas di desain UI Citari: Kunci, Ban, Aki, Bensin, Oli.
-        // Bobot ban serep (4) di antara aki dan jeriken; ukuran sedikit dibesarkan supaya mudah dibidik.
+        // Daftar dan urutannya mengikuti kertas tugas: Filter Oli, Stir Kemudi, Kunci Mobil, Knalpot, Aki Mobil.
+        // Knalpot belum punya model, jadi placeholder-nya pipa (silinder rebah).
         static readonly PartSpec[] Parts =
         {
-            new("KunciMobil", "Kunci Mobil", 0.5f, new Vector3(0.26f, 0.06f, 0.12f)),
-            new("Ban", "Ban", 4f, new Vector3(0.22f, 0.62f, 0.62f), isWheel: true),
-            new("Aki", "Aki", 3f, new Vector3(0.34f, 0.22f, 0.2f)),
-            new("JerikenBensin", "Jeriken Bensin", 3.5f, new Vector3(0.3f, 0.42f, 0.17f)),
             new("FilterOli", "Filter Oli", 0.5f, new Vector3(0.12f, 0.16f, 0.12f)),
+            new("Stir", "Stir Kemudi", 1.5f, new Vector3(0.4f, 0.4f, 0.1f)),
+            new("KunciMobil", "Kunci Mobil", 0.5f, new Vector3(0.26f, 0.06f, 0.12f)),
+            new("Knalpot", "Knalpot", 2.5f, new Vector3(0.8f, 0.14f, 0.14f), isCylinder: true),
+            new("Aki", "Aki Mobil", 3f, new Vector3(0.34f, 0.22f, 0.2f)),
         };
 
         // Titik muncul suku cadang, dalam ruang lokal landmark (+Z menghadap mobil).
@@ -154,7 +154,7 @@ namespace TheAlas.EditorTools
             roundSettings.FindProperty("duration").floatValue = map.RoundDuration;
             roundSettings.ApplyModifiedPropertiesWithoutUndo();
             Wire(spawner, ("car", car));
-            Wire(creature, ("player", noise));
+            Wire(creature, ("player", noise), ("inventory", inventory));
             Wire(hud, ("skin", skin), ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
                 ("interactor", interactor), ("look", look), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
 
@@ -229,8 +229,8 @@ namespace TheAlas.EditorTools
             skin.taskPaper = T("Task_Paper");
             skin.taskBox = T("Task_Box");
             skin.taskChecks = Enumerable.Range(1, 5).Select(i => T($"Task_Check_{i:00}")).ToArray();
-            // Tulisan di kertas tugas, urut sama dengan Parts (Kunci, Ban, Aki, Bensin, Oli).
-            skin.taskLabels = new[] { "Kunci", "Ban", "Aki", "Bensin", "Oli" }.Select(n => T($"Task_{n}")).ToArray();
+            // Tulisan di kertas tugas, urut sama dengan Parts.
+            skin.taskLabels = new[] { "Oli", "Stir", "Kunci", "Knalpot", "Aki" }.Select(n => T($"Task_{n}")).ToArray();
             EditorUtility.SetDirty(skin);
             return skin;
         }
@@ -366,7 +366,14 @@ namespace TheAlas.EditorTools
                 Source("AmbienceCrickets", Clip("Ambience/AMB_Crickets_Loop"), 0.2f, true),
                 Source("AmbienceCicada", Clip("Ambience/AMB_Cicada_Loop"), 0.12f, true),
             });
+            SetReferences(atmosphere, "scareClips", ScareClips());
         }
+
+        internal static Object[] ScareClips() => new Object[]
+        {
+            Clip("SFX/SFX_Creature_Growl_01"), Clip("SFX/SFX_Creature_Growl_02"), Clip("SFX/SFX_Creature_Sniff_01"),
+            Clip("SFX/SFX_Bush_Rustle_01"), Clip("SFX/SFX_Bush_Rustle_02"), Clip("SFX/SFX_Bush_Rustle_03"),
+        };
 
         // ---------- Cutscene pembuka ----------
 
@@ -410,7 +417,7 @@ namespace TheAlas.EditorTools
                 // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
                 new ShotSpec("Malam itu, mobilmu mogok di tepi alas.", 6.5f,
                     carPos + new Vector3(-14f, 18f, -32f), carPos + new Vector3(-5f, 5f, -11f), carPos + Vector3.up),
-                new ShotSpec("Kunci, ban, aki, bensin, oli… semuanya tercecer di dalam hutan.", 6f,
+                new ShotSpec("Filter oli, stir, kunci, knalpot, aki… semuanya tercecer di dalam hutan.", 6f,
                     carPos + new Vector3(-5.5f, 1.3f, -4.5f), carPos + new Vector3(-3.6f, 1.0f, -3.0f), carPos + new Vector3(0.5f, 0.8f, 0f)),
                 new ShotSpec("Ada yang menunggu di antara pepohonan.", 7f,
                     eye, eye + south * 4f + Vector3.down * 0.05f, eyesRoot.position) { Eyes = true },
@@ -588,16 +595,16 @@ namespace TheAlas.EditorTools
             {
                 data = ScriptableObject.CreateInstance<ItemData>();
                 AssetDatabase.CreateAsset(data, dataPath);
-                var so = new SerializedObject(data);
-                so.FindProperty("displayName").stringValue = spec.DisplayName;
-                so.FindProperty("weight").floatValue = spec.Weight;
-                so.FindProperty("isCarPart").boolValue = true;
-                so.ApplyModifiedPropertiesWithoutUndo();
             }
+            var settings = new SerializedObject(data);
+            settings.FindProperty("displayName").stringValue = spec.DisplayName;
+            settings.FindProperty("weight").floatValue = spec.Weight;
+            settings.FindProperty("isCarPart").boolValue = true;
+            settings.ApplyModifiedPropertiesWithoutUndo();
 
             var prefab = GreyboxBuilder.EnsurePrefab($"Items/PF_Item_{spec.Id}", (root, model) =>
             {
-                if (spec.IsWheel)
+                if (spec.IsCylinder)
                     GreyboxBuilder.Cylinder(model, "Body", Vector3.up * (spec.Size.y / 2f), spec.Size.y, spec.Size.x, palette.ItemPart,
                         collider: false, euler: new Vector3(0f, 0f, 90f));
                 else
@@ -638,7 +645,70 @@ namespace TheAlas.EditorTools
                 sphere.center = Vector3.up * 0.15f;
             }
 
+            if (!root.transform.Find("Sparkle")) AddSparkle(root.transform, itemLayer);
             Wire(GetOrAdd<Item>(root), ("data", data));
+        }
+
+        const string SparkleMaterialPath = GreyboxBuilder.Root + "/Art/Materials/M_Item_Sparkle.mat";
+
+        /// <summary>
+        /// Kilau kecil kekuningan di sekitar barang supaya pemain tahu benda itu bisa dipungut.
+        /// Ikut hilang saat barang dipungut karena objeknya dinonaktifkan.
+        /// </summary>
+        static void AddSparkle(Transform root, int layer)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(SparkleMaterialPath);
+            if (!material)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                material.SetFloat("_Surface", 1f); // transparan
+                material.SetFloat("_Blend", 2f);   // additive
+                material.SetTexture("_BaseMap", AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd"));
+                material.SetColor("_BaseColor", Color.white);
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                material.SetInt("_ZWrite", 0);
+                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                AssetDatabase.CreateAsset(material, SparkleMaterialPath);
+            }
+
+            var go = new GameObject("Sparkle") { layer = layer };
+            go.transform.SetParent(root, false);
+            go.transform.localPosition = Vector3.up * 0.2f;
+            var particles = go.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            var main = particles.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 1.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.2f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.12f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.85f, 0.45f), new Color(1f, 0.97f, 0.8f));
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 24;
+            main.gravityModifier = -0.02f;
+
+            var emission = particles.emission;
+            emission.rateOverTime = 9f;
+
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.3f;
+
+            var fade = particles.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.25f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         static void ConfigureCreature(GameObject root)

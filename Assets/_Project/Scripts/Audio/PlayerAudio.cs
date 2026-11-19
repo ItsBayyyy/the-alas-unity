@@ -87,13 +87,13 @@ namespace TheAlas.Audio
                 if (breathTimer <= 0f)
                 {
                     breathTimer = breathInterval;
-                    AudioClips.PlayRandom(source, breathClips, 0.8f, 0.05f);
+                    AudioClips.PlayRandom(source, breathClips, 0.35f, 0.05f); // rekaman napas Jaya sudah keras
                 }
             }
             else if (wasExhausted)
             {
                 breathTimer = 0f;
-                AudioClips.PlayRandom(source, recoverClips, 0.6f, 0.05f);
+                AudioClips.PlayRandom(source, recoverClips, 0.3f, 0.05f);
             }
             wasExhausted = motor.IsExhausted;
         }

@@ -24,6 +24,7 @@ namespace TheAlas.UI
         static readonly Rect MicBar = new(362f, 237f, 762f, 25f);
         static readonly Rect MicStatus = new(56f, 316f, 1090f, 36f);
         static readonly Color PanelBackground = new(0.09f, 0.09f, 0.07f);
+        const float LoudLevel = 0.6f;
         public static readonly Rect ControlsSection = new(34f, 388f, 1129f, 686f);
 
         static Vector2 scroll;
@@ -69,12 +70,15 @@ namespace TheAlas.UI
             Rect M(Rect r) => new(r.x * s, r.y * s, r.width * s, r.height * s);
             bool enabled = GameSettings.MicEnabled;
 
+            var button = M(MicButton);
+            if (button.Contains(Event.current.mousePosition))
+                UiDraw.Fill(button, new Color(UiDraw.Rust.r, UiDraw.Rust.g, UiDraw.Rust.b, 0.25f));
             if (!enabled)
             {
                 UiDraw.Fill(M(MicButtonText), PanelBackground);
                 UiDraw.Label(M(MicButtonText), "<b>Nyalakan Mikrofon</b>", 24f * s, UiDraw.Cream);
             }
-            if (GUI.Button(M(MicButton), GUIContent.none, GUIStyle.none))
+            if (GUI.Button(button, GUIContent.none, GUIStyle.none))
             {
                 GameSettings.MicEnabled = !enabled;
                 if (GameSettings.MicEnabled) MicrophoneInput.Begin();
@@ -83,7 +87,9 @@ namespace TheAlas.UI
 
             var bar = M(MicBar);
             UiDraw.Fill(bar, new Color(0.16f, 0.15f, 0.12f));
-            UiDraw.Fill(new Rect(bar.x, bar.y, bar.width * MicrophoneInput.Level01, bar.height), UiDraw.Cream);
+            // Bar memerah saat suara sudah cukup keras untuk memancing makhluk memburu.
+            float level = MicrophoneInput.Level01;
+            UiDraw.Fill(new Rect(bar.x, bar.y, bar.width * level, bar.height), level > LoudLevel ? UiDraw.Rust : UiDraw.Cream);
 
             string status = !enabled ? "Mikrofon mati: makhluk hanya mendengar langkah dan barangmu."
                 : MicrophoneInput.State switch

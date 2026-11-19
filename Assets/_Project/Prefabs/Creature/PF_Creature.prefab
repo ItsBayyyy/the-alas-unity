@@ -96,18 +96,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheAlas.Creature.CreatureAI
   player: {fileID: 0}
-  wanderSpeed: 1.45
-  investigateSpeed: 2.8
-  huntSpeed: 4.3
+  spawnDelay: 30
+  inventory: {fileID: 0}
+  wanderSpeed: 2
+  investigateSpeed: 3.6
+  huntSpeed: 5
   finalMinuteSpeedBonus: 0.15
-  hearingPerNoise: 0.32
-  hearingBase: 0.8
-  huntCloseRange: 7
+  hearingPerNoise: 0.5
+  hearingBase: 1.5
+  huntCloseRange: 8
   loudThreshold: 38
-  loudHuntRange: 16
+  loudHuntRange: 40
   positionErrorPerMeter: 0.12
   maxPositionError: 7
-  huntMemory: 2.2
+  huntMemory: 10
   searchDuration: 2.8
   arriveDistance: 1.2
   retargetInterval: {x: 5, y: 9}

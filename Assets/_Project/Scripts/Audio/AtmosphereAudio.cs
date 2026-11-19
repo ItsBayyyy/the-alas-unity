@@ -35,7 +35,16 @@ namespace TheAlas.Audio
         [SerializeField] AudioClip winClip;
         [SerializeField] AudioClip caughtClip;
 
+        [Header("Bunyi seram acak")]
+        [Tooltip("Geraman, endusan, dan semak bergoyang di sekitar pemain supaya mencari barang tidak terasa sepi")]
+        [SerializeField] AudioClip[] scareClips;
+        [SerializeField] Vector2 scareInterval = new(18f, 40f);
+        [SerializeField] Vector2 scareDistance = new(10f, 22f);
+        [SerializeField] float scareVolume = 0.7f;
+
         float heartbeatTimer;
+        float scareTimer;
+        bool ambienceStarted;
 
         void Start()
         {
@@ -47,6 +56,23 @@ namespace TheAlas.Audio
         {
             foreach (var loop in ambienceLoops)
                 if (!loop.isPlaying) loop.Play();
+            ambienceStarted = true;
+            scareTimer = Random.Range(scareInterval.x, scareInterval.y);
+        }
+
+        /// <summary>Bunyi pendek dari arah acak di sekitar pendengar; tidak menarik perhatian makhluk.</summary>
+        void UpdateScares(bool hunting, float dt)
+        {
+            if (!ambienceStarted || hunting || scareClips.Length == 0) return;
+            scareTimer -= dt;
+            if (scareTimer > 0f) return;
+            scareTimer = Random.Range(scareInterval.x, scareInterval.y);
+
+            var listener = Camera.main;
+            if (!listener) return;
+            Vector2 direction = Random.insideUnitCircle.normalized * Random.Range(scareDistance.x, scareDistance.y);
+            var position = listener.transform.position + new Vector3(direction.x, 0f, direction.y);
+            AudioSource.PlayClipAtPoint(AudioClips.Pick(scareClips), position, scareVolume);
         }
 
         void OnDestroy()
@@ -59,12 +85,13 @@ namespace TheAlas.Audio
             if (RoundManager.Instance.IsOver) return;
 
             // Selama cutscene makhluk belum aktif: tidak ada detak jantung atau musik.
-            bool active = creature.isActiveAndEnabled;
+            bool active = creature.isActiveAndEnabled && !creature.IsDormant;
             bool hunting = active && creature.State == CreatureState.Hunt;
             float closeness = !active ? 0f : hunting ? 1f : Mathf.Clamp01(1f - creature.DistanceToPlayer / heartbeatRange);
 
             UpdateHeartbeat(closeness, Time.deltaTime);
             UpdateDangerMusic(hunting, Time.deltaTime);
+            UpdateScares(hunting, Time.deltaTime);
         }
 
         void UpdateHeartbeat(float closeness, float dt)

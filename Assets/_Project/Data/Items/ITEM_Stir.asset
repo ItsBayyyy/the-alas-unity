@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02406978132fae4438674e74bd3c3be3, type: 3}
   m_Name: ITEM_Stir
   m_EditorClassIdentifier: Assembly-CSharp::TheAlas.Items.ItemData
-  displayName: Stir
+  displayName: Stir Kemudi
   weight: 1.5
   isCarPart: 1
   value: 0
