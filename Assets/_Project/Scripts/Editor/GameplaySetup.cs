@@ -51,15 +51,15 @@ namespace TheAlas.EditorTools
             }
         }
 
-        // Daftar dan urutannya mengikuti kertas tugas: Filter Oli, Stir Kemudi, Kunci Mobil, Knalpot, Aki Mobil.
+        // Daftar dan urutannya mengikuti kertas tugas Citari: Kunci, Knalpot, Aki, Setir, Filter Oli.
         // Knalpot belum punya model, jadi placeholder-nya pipa (silinder rebah).
         static readonly PartSpec[] Parts =
         {
-            new("FilterOli", "Filter Oli", 0.5f, new Vector3(0.12f, 0.16f, 0.12f)),
-            new("Stir", "Stir Kemudi", 1.5f, new Vector3(0.4f, 0.4f, 0.1f)),
             new("KunciMobil", "Kunci Mobil", 0.5f, new Vector3(0.26f, 0.06f, 0.12f)),
             new("Knalpot", "Knalpot", 2.5f, new Vector3(0.8f, 0.14f, 0.14f), isCylinder: true),
             new("Aki", "Aki Mobil", 3f, new Vector3(0.34f, 0.22f, 0.2f)),
+            new("Stir", "Setir", 1.5f, new Vector3(0.4f, 0.4f, 0.1f)),
+            new("FilterOli", "Filter Oli", 0.5f, new Vector3(0.12f, 0.16f, 0.12f)),
         };
 
         // Titik muncul suku cadang, dalam ruang lokal landmark (+Z menghadap mobil).
@@ -234,7 +234,7 @@ namespace TheAlas.EditorTools
             skin.taskBox = T("Task_Box");
             skin.taskChecks = Enumerable.Range(1, 5).Select(i => T($"Task_Check_{i:00}")).ToArray();
             // Tulisan di kertas tugas, urut sama dengan Parts.
-            skin.taskLabels = new[] { "Oli", "Stir", "Kunci", "Knalpot", "Aki" }.Select(n => T($"Task_{n}")).ToArray();
+            skin.taskLabels = new[] { "Kunci", "Knalpot", "Aki", "Stir", "Oli" }.Select(n => T($"Task_{n}")).ToArray();
             EditorUtility.SetDirty(skin);
             return skin;
         }
@@ -421,7 +421,7 @@ namespace TheAlas.EditorTools
                 // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
                 new ShotSpec("Malam itu, mobilmu mogok di tepi alas.", 6.5f,
                     carPos + new Vector3(-14f, 18f, -32f), carPos + new Vector3(-5f, 5f, -11f), carPos + Vector3.up),
-                new ShotSpec("Filter oli, stir, kunci, knalpot, aki… semuanya tercecer di dalam hutan.", 6f,
+                new ShotSpec("Kunci, knalpot, aki, setir, filter oli… semuanya tercecer di dalam hutan.", 6f,
                     carPos + new Vector3(-5.5f, 1.3f, -4.5f), carPos + new Vector3(-3.6f, 1.0f, -3.0f), carPos + new Vector3(0.5f, 0.8f, 0f)),
                 new ShotSpec("Ada yang menunggu di antara pepohonan.", 7f,
                     eye, eye + south * 4f + Vector3.down * 0.05f, eyesRoot.position) { Eyes = true },

@@ -37,8 +37,8 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 318691e05b181024bbd1e3b96fcc0f4a, type: 3}
   - {fileID: 2800000, guid: 9d8f251232de507428491205c3c6c073, type: 3}
   taskLabels:
-  - {fileID: 2800000, guid: 5df048b91a0e01c44aa025e9b3f4dfe9, type: 3}
-  - {fileID: 2800000, guid: 1bb376d2e9ea3c94fa195fa56b8a3cee, type: 3}
   - {fileID: 2800000, guid: 036599a1ece1b194c9a651b6526af8fa, type: 3}
   - {fileID: 2800000, guid: edae2721e20023c4d9ecf3e54252035c, type: 3}
   - {fileID: 2800000, guid: 3a669f9db606cf543ab7a98bd2f4a910, type: 3}
+  - {fileID: 2800000, guid: 1bb376d2e9ea3c94fa195fa56b8a3cee, type: 3}
+  - {fileID: 2800000, guid: 5df048b91a0e01c44aa025e9b3f4dfe9, type: 3}

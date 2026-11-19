@@ -34,7 +34,7 @@ namespace TheAlas.UI
         [SerializeField] float summonDistance = 10f;
 
         // Kertas tugas (mockup 734 × 1157): posisi tulisan tiap baris, kotak, dan centangnya.
-        const float PaperWidth = 734f, PaperHeight = 1157f, MaxLabelHeight = 90f;
+        const float PaperWidth = 734f, PaperHeight = 1157f;
         static readonly Vector2[] TaskLabels = { new(310, 195), new(310, 370), new(309, 556), new(310, 715), new(309, 866) };
         static readonly Vector2 BoxOffset = new(136f - 310f, -41f), CheckOffset = new(102f - 310f, -91f);
 
@@ -230,9 +230,8 @@ namespace TheAlas.UI
                 var part = parts[i];
                 Vector2 at = TaskLabels[i];
                 var label = i < skin.taskLabels.Length ? skin.taskLabels[i] : null;
-                // Tulisan dua baris ("FILTER OIL") diperkecil supaya tetap muat satu baris tugas.
-                float labelHeight = label ? Mathf.Min(label.height, MaxLabelHeight) : 80f;
-                if (label) GUI.DrawTexture(P(at.x, at.y, label.width * labelHeight / label.height, labelHeight), label);
+                float labelHeight = label ? label.height : 80f;
+                if (label) GUI.DrawTexture(P(at.x, at.y, label.width, label.height), label);
 
                 var box = P(at.x + BoxOffset.x, at.y + BoxOffset.y, skin.taskBox.width, skin.taskBox.height);
                 GUI.DrawTexture(box, skin.taskBox);

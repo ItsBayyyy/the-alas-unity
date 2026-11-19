@@ -70,11 +70,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheAlas.World.Car
   requiredParts:
-  - {fileID: 11400000, guid: 49f64642159ca80449b89586527a2e3a, type: 2}
-  - {fileID: 11400000, guid: 28a63134a79f92448b0286be76e42be3, type: 2}
   - {fileID: 11400000, guid: cf1f983e99137ba45878afbab0dbf290, type: 2}
   - {fileID: 11400000, guid: 73654d4b78010ec44af77c33ad064a70, type: 2}
   - {fileID: 11400000, guid: 05cf8a2b134e64d458db67ff9fe2eceb, type: 2}
+  - {fileID: 11400000, guid: 28a63134a79f92448b0286be76e42be3, type: 2}
+  - {fileID: 11400000, guid: 49f64642159ca80449b89586527a2e3a, type: 2}
   engineDuration: 3
   depositNoiseBase: 8
   depositNoisePerItem: 4
