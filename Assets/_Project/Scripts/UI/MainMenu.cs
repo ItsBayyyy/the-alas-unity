@@ -1,4 +1,5 @@
 using TheAlas.Core;
+using TheAlas.Player;
 using UnityEngine;
 
 namespace TheAlas.UI
@@ -43,6 +44,7 @@ namespace TheAlas.UI
             UiDraw.FullScreen(skin.menu);
             if (Button(PlayHit, PlayArt, skin.menuPlayHover))
             {
+                MicrophoneInput.Begin(); // browser hanya memberi akses mikrofon dari klik pemain
                 intro.Play();
                 enabled = false;
             }

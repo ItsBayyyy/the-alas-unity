@@ -34,6 +34,17 @@ namespace TheAlas.UI
             }
         }
 
+        /// <summary>Mikrofon ikut terdengar oleh makhluk (bawaan menyala, sesuai desain).</summary>
+        public static bool MicEnabled
+        {
+            get => PlayerPrefs.GetInt("alas.mic", 1) == 1;
+            set
+            {
+                PlayerPrefs.SetInt("alas.mic", value ? 1 : 0);
+                Changed?.Invoke();
+            }
+        }
+
         public static bool InvertY
         {
             get => PlayerPrefs.GetInt("alas.invertY", 0) == 1;
@@ -58,12 +69,13 @@ namespace TheAlas.UI
 
         static string Key(Slider slider) => $"alas.{slider}";
 
-        // Bawaan setara pengaturan sebelum ada layar ini: sensitivitas 1×, terang 1×, FOV 70.
+        // Bawaan setara pengaturan sebelum ada layar ini: sensitivitas 1×, terang 1×, FOV 70; kepekaan mikrofon di tengah.
         static float Default(Slider slider) => slider switch
         {
             Slider.Sensitivity => Mathf.InverseLerp(0.25f, 2f, 1f),
             Slider.Brightness => Mathf.InverseLerp(0.5f, 2.5f, 1f),
             Slider.FieldOfView => Mathf.InverseLerp(55f, 95f, 70f),
+            Slider.MicSensitivity => 0.5f,
             _ => 1f
         };
     }

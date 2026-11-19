@@ -139,6 +139,7 @@ namespace TheAlas.EditorTools
             Wire(hud, ("skin", skin), ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
                 ("interactor", interactor), ("look", look), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
 
+            Wire(systems.AddComponent<MicrophoneInput>(), ("noise", noise));
             var settings = systems.AddComponent<SettingsApplier>();
             Wire(settings, ("look", look), ("playerCamera", viewPoint.GetComponent<Camera>()),
                 ("flashlight", player.GetComponentInChildren<Flashlight>().GetComponent<Light>()), ("ground", Object.FindFirstObjectByType<Terrain>()));

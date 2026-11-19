@@ -1,11 +1,12 @@
+using TheAlas.Player;
 using UnityEngine;
 
 namespace TheAlas.UI
 {
     /// <summary>
     /// Layar Pengaturan dari desain Citari (1200 × 2000, digulir). Gambar mockup menjadi latar; slider,
-    /// persen, pilihan kualitas, dan centang digambar di atasnya sesuai <see cref="GameSettings"/>.
-    /// Bagian mikrofon diredupkan: Unity WebGL tidak bisa membaca mikrofon.
+    /// persen, pilihan kualitas, centang, dan bagian mikrofon (tombol, bar suara, keadaan) digambar di
+    /// atasnya sesuai <see cref="GameSettings"/> dan <see cref="MicrophoneInput"/>.
     /// </summary>
     public static class SettingsPanel
     {
@@ -18,7 +19,11 @@ namespace TheAlas.UI
         static readonly Rect InvertBox = new(577f, 1568f, 49f, 48f);
         static readonly Rect CheckArt = new(574f, 1566f, 53f, 55f);
         static readonly Rect EnterButton = new(430f, 1735f, 350f, 125f);
-        static readonly Rect MicSection = new(34f, 34f, 1129f, 327f);
+        static readonly Rect MicButton = new(60f, 200f, 285f, 100f);
+        static readonly Rect MicButtonText = new(78f, 228f, 250f, 42f);
+        static readonly Rect MicBar = new(362f, 237f, 762f, 25f);
+        static readonly Rect MicStatus = new(56f, 316f, 1090f, 36f);
+        static readonly Color PanelBackground = new(0.09f, 0.09f, 0.07f);
         public static readonly Rect ControlsSection = new(34f, 388f, 1129f, 686f);
 
         static Vector2 scroll;
@@ -37,11 +42,10 @@ namespace TheAlas.UI
             scroll = GUI.BeginScrollView(view, scroll, content, false, true);
             GUI.DrawTexture(content, skin.settings);
 
-            UiDraw.Fill(M(MicSection), new Color(0.05f, 0.05f, 0.04f, 0.72f));
-            UiDraw.Label(M(new Rect(60f, 290f, 1080f, 60f)), "Mikrofon belum tersedia di versi browser", 30f * s, UiDraw.Cream);
+            DrawMicrophone(s);
 
             for (int i = 0; i < SliderRows.Length; i++)
-                DrawSlider(i, s, enabled: (GameSettings.Slider)i != GameSettings.Slider.MicSensitivity);
+                DrawSlider(i, s, enabled: (GameSettings.Slider)i != GameSettings.Slider.MicSensitivity || GameSettings.MicEnabled);
 
             UiDraw.Label(M(new Rect(QualityBox.x + 22f, QualityBox.y, 200f, QualityBox.height)),
                 GameSettings.QualityNames[GameSettings.Quality], 30f * s, UiDraw.Cream, TextAnchor.MiddleLeft);
@@ -57,6 +61,41 @@ namespace TheAlas.UI
             GUI.EndScrollView();
             if (closed) dragging = -1;
             return closed;
+        }
+
+        /// <summary>Tombol nyala/mati, bar kerasnya suara, dan keterangan keadaan mikrofon.</summary>
+        static void DrawMicrophone(float s)
+        {
+            Rect M(Rect r) => new(r.x * s, r.y * s, r.width * s, r.height * s);
+            bool enabled = GameSettings.MicEnabled;
+
+            if (!enabled)
+            {
+                UiDraw.Fill(M(MicButtonText), PanelBackground);
+                UiDraw.Label(M(MicButtonText), "<b>Nyalakan Mikrofon</b>", 24f * s, UiDraw.Cream);
+            }
+            if (GUI.Button(M(MicButton), GUIContent.none, GUIStyle.none))
+            {
+                GameSettings.MicEnabled = !enabled;
+                if (GameSettings.MicEnabled) MicrophoneInput.Begin();
+                else MicrophoneInput.End();
+            }
+
+            var bar = M(MicBar);
+            UiDraw.Fill(bar, new Color(0.16f, 0.15f, 0.12f));
+            UiDraw.Fill(new Rect(bar.x, bar.y, bar.width * MicrophoneInput.Level01, bar.height), UiDraw.Cream);
+
+            string status = !enabled ? "Mikrofon mati: makhluk hanya mendengar langkah dan barangmu."
+                : MicrophoneInput.State switch
+                {
+                    MicrophoneInput.MicState.On => null, // keterangan bawaan desain sudah benar
+                    MicrophoneInput.MicState.Denied => "Izin mikrofon ditolak atau tidak ada mikrofon. Izinkan di browser, lalu klik tombol dua kali.",
+                    MicrophoneInput.MicState.Waiting => "Menunggu izin mikrofon dari browser…",
+                    _ => "Mikrofon menyala saat permainan dimulai."
+                };
+            if (status == null) return;
+            UiDraw.Fill(M(MicStatus), PanelBackground);
+            UiDraw.Label(M(MicStatus), status, 24f * s, UiDraw.Cream, TextAnchor.MiddleLeft);
         }
 
         static void DrawSlider(int row, float s, bool enabled)

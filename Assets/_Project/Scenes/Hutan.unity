@@ -13964,6 +13964,7 @@ GameObject:
   - component: {fileID: 322838617}
   - component: {fileID: 322838616}
   - component: {fileID: 322838615}
+  - component: {fileID: 322838623}
   m_Layer: 0
   m_Name: Systems
   m_TagString: Untagged
@@ -14207,6 +14208,22 @@ Transform:
   - {fileID: 1988158371}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &322838623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322838614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8eec5b544193a2b45a55d5b8c1ac4d57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheAlas.Player.MicrophoneInput
+  noise: {fileID: 1212962350}
+  decibelRange: {x: -48, y: -8}
+  sensitivityRangeDb: 12
+  releasePerSecond: 120
 --- !u!1001 &322850223
 PrefabInstance:
   m_ObjectHideFlags: 0
