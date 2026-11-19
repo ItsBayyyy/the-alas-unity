@@ -54,8 +54,15 @@ namespace TheAlas.Creature
         [SerializeField] float nearPlayerRadius = 24f;
         [SerializeField] float roamRadius = 40f;
 
+        [Header("Belok (derajat per detik)")]
+        [Tooltip("Pelan saat berkeliaran supaya tidak terlihat berputar-putar; cepat hanya saat memburu")]
+        [SerializeField] float wanderTurnSpeed = 120f;
+        [SerializeField] float investigateTurnSpeed = 200f;
+        [SerializeField] float huntTurnSpeed = 420f;
+
         [Header("Menangkap")]
-        [SerializeField] float catchDistance = 1.1f;
+        [Tooltip("Dari pusat makhluk; lengan model menjulur sekitar 1,6 m ke depan")]
+        [SerializeField] float catchDistance = 1.4f;
         [SerializeField] float repathInterval = 0.25f;
 
         [Header("Mata")]
@@ -257,6 +264,12 @@ namespace TheAlas.Creature
         void SetState(CreatureState state)
         {
             State = state;
+            agent.angularSpeed = state switch
+            {
+                CreatureState.Hunt => huntTurnSpeed,
+                CreatureState.Investigate => investigateTurnSpeed,
+                _ => wanderTurnSpeed
+            };
             Color color = state switch
             {
                 CreatureState.Hunt => huntEyeColor,

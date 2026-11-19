@@ -625,8 +625,8 @@ namespace TheAlas.EditorTools
                 agent = root.AddComponent<NavMeshAgent>();
                 agent.radius = 0.45f;
                 agent.height = 3f;
-                agent.angularSpeed = 300f;
-                agent.acceleration = 10f;
+                agent.angularSpeed = 120f; // diatur ulang CreatureAI menurut keadaan
+                agent.acceleration = 20f;  // cukup tinggi supaya tidak mengitari pemain karena kebablasan
                 agent.stoppingDistance = 0.3f;
             }
 

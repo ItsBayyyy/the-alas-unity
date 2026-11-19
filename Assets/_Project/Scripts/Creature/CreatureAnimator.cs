@@ -15,10 +15,10 @@ namespace TheAlas.Creature
         static readonly int PlaySpeedId = Animator.StringToHash("PlaySpeed");
         static readonly int SearchingId = Animator.StringToHash("Searching");
 
-        [Tooltip("Tempo animasi saat diam dan saat berlari paling cepat")]
-        [SerializeField] Vector2 playSpeedRange = new(0.5f, 1.6f);
-        [Tooltip("Kecepatan agen (m/s) yang memakai tempo tertinggi")]
-        [SerializeField] float fastestSpeed = 5f;
+        [Tooltip("Kecepatan agen (m/s) yang cocok dengan tempo asli klip gerak; lebih pelan = langkah diperlambat")]
+        [SerializeField] float clipSpeed = 3.6f;
+        [Tooltip("Batas tempo animasi gerak")]
+        [SerializeField] Vector2 playSpeedRange = new(0.3f, 1.3f);
         [SerializeField] float damping = 0.15f;
 
         NavMeshAgent agent;
@@ -39,7 +39,8 @@ namespace TheAlas.Creature
             float speed = agent.velocity.magnitude;
             float dt = Time.deltaTime;
             animator.SetFloat(SpeedId, speed, damping, dt);
-            animator.SetFloat(PlaySpeedId, Mathf.Lerp(playSpeedRange.x, playSpeedRange.y, speed / fastestSpeed), damping, dt);
+            // Tempo langkah sebanding dengan kecepatan, jadi berkeliaran terbaca sebagai jalan pelan, memburu sebagai lari.
+            animator.SetFloat(PlaySpeedId, Mathf.Clamp(speed / clipSpeed, playSpeedRange.x, playSpeedRange.y), damping, dt);
             animator.SetBool(SearchingId, ai.State == CreatureState.Investigate && speed < 0.2f);
         }
     }
