@@ -127,6 +127,9 @@ namespace TheAlas.EditorTools
 
         public static void Clear() => current = null;
 
+        /// <summary>Memakai terrain yang sudah ada (map Gung Wah) untuk <see cref="HeightAt"/>.</summary>
+        public static void Use(Terrain terrain) => current = terrain;
+
         static float[,] ReadHeightmap()
         {
             var bytes = File.ReadAllBytes(HeightmapPath);

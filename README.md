@@ -92,7 +92,11 @@ PF_Landmark_SumurTua        ← root: pivot di tanah, berisi komponen gameplay
    - Setelah landmark, pohon, atau batang tumbang diganti, bake ulang navmesh: pilih objek `NavMesh` di scene → Bake.
 5. Simpan prefab. Semua salinannya di scene langsung ikut berubah.
 
-## Greybox
+## Map Gung Wah (map yang dipakai sekarang)
+
+Menu **Tools → The Alas → Bangun Map Gung Wah** membangun `Hutan.unity` dari scene buatan Gung Wah (`Assets/_Project/Scenes/GungWah/GungWah_Source.unity`) persis ukuran dan posisinya: terrain 780 × 889 m, rumah, sumur, peternakan, kincir angin, pagar, pohon conifer, dan rumputnya. Kamera, cahaya, volume, dan alat editor dari scene itu dibuang; objeknya diberi MeshCollider. Di atasnya builder memasang mobil di lembah di utara rumah, tujuh landmark (Rumah Kosong, Sumur Tua, Peternakan, Kincir Angin dari objek Gung Wah; Pohon Beringin, Makam Keramat, Pos Ronda di tanah datar terbuka 90–260 m dari mobil), makhluk sekitar 250 m dari mobil, semak, ranting, batang tumbang, tembok tak terlihat di tepi terrain, dan navmesh. Ronde 15 menit karena jarak antarlandmark sampai 435 m. Scene sumbernya tidak diubah, jadi kalau Gung Wah memperbarui map-nya, ganti file sumber dan terrain-nya lalu jalankan menu ini lagi.
+
+## Greybox (map lama)
 
 Menu **Tools → The Alas → Bangun Greybox Hutan** membangun ulang `Hutan.unity` dari nol: peta 160 × 160 m, mobil di tepi utara, enam landmark, sekitar 490 pohon, batang tumbang yang melintang di jalur lurus mobil–landmark, semak, makhluk, sistem ronde, dan navmesh. Isi hutan: pohon (European Forests), semak Hazel, batang tumbang dan ranting bertekstur kulit kayu Spruce, rumput detail, dan jalur setapak melingkar yang melewati landmark. Jalur itu sengaja bebas semak, ranting, dan kerikil (GDD: rute aman tapi lebih panjang). Ranting (`PF_Twig_01`, komponen `Twig`) patah sekali saat diinjak dan menambah suara 30 (12 kalau jongkok) plus 2 per unit beban; belum ada rekaman ranting patah, jadi sementara memakai `SFX_Item_Wood_Drop_01`; simpan rekamannya sebagai `SFX_Twig_Snap_01.wav` lalu ganti nama klip di `GameplaySetup.ConfigureAudio`.
 

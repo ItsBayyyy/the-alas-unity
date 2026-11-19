@@ -26,7 +26,6 @@ namespace TheAlas.EditorTools
     static class GameplaySetup
     {
         const string ItemDataDir = GreyboxBuilder.Root + "/Data/Items";
-        const string NavMeshPath = GreyboxBuilder.SceneDir + "/Hutan_NavMesh.asset";
 
         // Layer 8–10 dipakai supaya navmesh dan interaksi bisa mengabaikan pemain, barang, dan makhluk.
         static readonly (int index, string name)[] Layers = { (8, "Player"), (9, "Item"), (10, "Creature") };
@@ -112,9 +111,26 @@ namespace TheAlas.EditorTools
             ConfigureAudio(prefabs);
         }
 
-        public static void PopulateScene(Dictionary<string, GameObject> prefabs, Transform gameplay, GameObject player, GameObject carObject)
+        /// <summary>Area navmesh dan lamanya ronde, yang berbeda antara map greybox dan map Gung Wah.</summary>
+        public readonly struct MapSpec
         {
-            var creatureObject = GreyboxBuilder.Spawn(prefabs["Creature"], GreyboxBuilder.CreatureSpawn, Quaternion.identity, gameplay);
+            public readonly Vector3 CreatureSpawn, NavCenter, NavSize;
+            public readonly float RoundDuration;
+            public readonly string NavMeshPath;
+
+            public MapSpec(Vector3 creatureSpawn, Vector3 navCenter, Vector3 navSize, float roundDuration, string navMeshPath)
+            {
+                CreatureSpawn = creatureSpawn;
+                NavCenter = navCenter;
+                NavSize = navSize;
+                RoundDuration = roundDuration;
+                NavMeshPath = navMeshPath;
+            }
+        }
+
+        public static void PopulateScene(Dictionary<string, GameObject> prefabs, Transform gameplay, GameObject player, GameObject carObject, MapSpec map)
+        {
+            var creatureObject = GreyboxBuilder.Spawn(prefabs["Creature"], map.CreatureSpawn, Quaternion.identity, gameplay);
 
             var systems = new GameObject("Systems");
             var round = systems.AddComponent<RoundManager>();
@@ -134,6 +150,9 @@ namespace TheAlas.EditorTools
 
             Wire(round, ("input", input), ("motor", motor), ("look", look),
                 ("inventory", inventory), ("interactor", interactor));
+            var roundSettings = new SerializedObject(round);
+            roundSettings.FindProperty("duration").floatValue = map.RoundDuration;
+            roundSettings.ApplyModifiedPropertiesWithoutUndo();
             Wire(spawner, ("car", car));
             Wire(creature, ("player", noise));
             Wire(hud, ("skin", skin), ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
@@ -145,7 +164,7 @@ namespace TheAlas.EditorTools
                 ("flashlight", player.GetComponentInChildren<Flashlight>().GetComponent<Light>()), ("ground", Object.FindFirstObjectByType<Terrain>()));
 
             BuildAtmosphere(systems, creature);
-            BakeNavMesh();
+            BakeNavMesh(map);
             var intro = BuildIntro(systems, player, carObject.transform,
                 new Behaviour[] { motor, look, inventory, interactor, round, creature,
                     creatureObject.GetComponent<CreatureAudio>(), hud });
@@ -533,7 +552,7 @@ namespace TheAlas.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void ConfigureLandmark(GameObject root, string displayName, Vector3[] spawnPositions)
+        internal static void ConfigureLandmark(GameObject root, string displayName, Vector3[] spawnPositions)
         {
             var landmark = GetOrAdd<Landmark>(root);
 
@@ -647,7 +666,7 @@ namespace TheAlas.EditorTools
 
         // ---------- Navmesh ----------
 
-        static void BakeNavMesh()
+        static void BakeNavMesh(MapSpec map)
         {
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/NavMeshAreas.asset")[0]);
             settings.FindProperty("m_Settings").GetArrayElementAtIndex(0).FindPropertyRelative("agentClimb").floatValue = AgentClimb;
@@ -656,14 +675,14 @@ namespace TheAlas.EditorTools
             var surface = new GameObject("NavMesh").AddComponent<NavMeshSurface>();
             // Hanya area main di dalam tembok; hutan pemandangan di luar tembok tidak boleh dijelajahi makhluk.
             surface.collectObjects = CollectObjects.Volume;
-            surface.center = new Vector3(0f, 10f, 0f);
-            surface.size = new Vector3(161f, 60f, 161f);
+            surface.center = map.NavCenter;
+            surface.size = map.NavSize;
             surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
             surface.layerMask = LayerMask.GetMask("Default");
             surface.BuildNavMesh();
 
-            AssetDatabase.DeleteAsset(NavMeshPath);
-            AssetDatabase.CreateAsset(surface.navMeshData, NavMeshPath);
+            AssetDatabase.DeleteAsset(map.NavMeshPath);
+            AssetDatabase.CreateAsset(surface.navMeshData, map.NavMeshPath);
             EditorUtility.SetDirty(surface);
         }
 

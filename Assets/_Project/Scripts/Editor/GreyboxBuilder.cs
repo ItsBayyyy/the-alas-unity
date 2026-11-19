@@ -157,7 +157,8 @@ namespace TheAlas.EditorTools
             var gameplay = new GameObject("Gameplay").transform;
             var car = Spawn(prefabs["Car"], CarPosition, Quaternion.Euler(0f, 90f, 0f), gameplay);
             var player = Spawn(prefabs["Player"], PlayerSpawn, Quaternion.Euler(0f, 180f, 0f), gameplay);
-            GameplaySetup.PopulateScene(prefabs, gameplay, player, car);
+            GameplaySetup.PopulateScene(prefabs, gameplay, player, car, new GameplaySetup.MapSpec(
+                CreatureSpawn, new Vector3(0f, 10f, 0f), new Vector3(161f, 60f, 161f), 450f, SceneDir + "/Hutan_NavMesh.asset"));
 
             var scene = EditorSceneManager.GetActiveScene();
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -191,7 +192,7 @@ namespace TheAlas.EditorTools
 
         // ---------- Prefab ----------
 
-        static Dictionary<string, GameObject> CreatePrefabs(Palette p) => new()
+        internal static Dictionary<string, GameObject> CreatePrefabs(Palette p) => new()
         {
             ["Player"] = EnsurePlayerPrefab(),
             ["Car"] = RequirePrefab("Vehicle/PF_Car"),
@@ -515,7 +516,7 @@ namespace TheAlas.EditorTools
 
         // ---------- Scene ----------
 
-        static void SetupLighting()
+        internal static void SetupLighting()
         {
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
@@ -620,7 +621,7 @@ namespace TheAlas.EditorTools
             AddWall(bounds, new Vector3(-MapHalfSize - 0.5f, 8f, 0f), new Vector3(1f, 20f, size + 2f));
         }
 
-        static void AddWall(Transform parent, Vector3 center, Vector3 size)
+        internal static void AddWall(Transform parent, Vector3 center, Vector3 size)
         {
             var wall = new GameObject("Wall").AddComponent<BoxCollider>();
             wall.transform.SetParent(parent, false);
@@ -751,7 +752,7 @@ namespace TheAlas.EditorTools
         }
 
         /// <summary>Semua varian satu jenis prefab (PF_Tree_Pinus_01, _02, …); minimal varian pertama.</summary>
-        static GameObject[] Variants(string prefix, GameObject first)
+        internal static GameObject[] Variants(string prefix, GameObject first)
         {
             var variants = AssetDatabase.FindAssets($"{prefix} t:Prefab", new[] { $"{PrefabDir}/Environment" })
                 .Select(AssetDatabase.GUIDToAssetPath)
@@ -830,7 +831,7 @@ namespace TheAlas.EditorTools
         /// berdasarkan posisi ruang objek; static batching menggabungkan mesh ke ruang dunia, sehingga
         /// tekukannya membesar sesuai jarak dari pusat peta dan pohon tampak berlari serta membesar-mengecil.
         /// </summary>
-        static void MarkStatic(Transform root)
+        internal static void MarkStatic(Transform root)
         {
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
             {
@@ -850,7 +851,7 @@ namespace TheAlas.EditorTools
             return go;
         }
 
-        static void SpawnScaled(GameObject prefab, Vector3 pos, Random rng, Transform parent, float min, float max)
+        internal static void SpawnScaled(GameObject prefab, Vector3 pos, Random rng, Transform parent, float min, float max)
         {
             var go = Spawn(prefab, pos, Quaternion.Euler(0f, Range(rng, 0f, 360f), 0f), parent);
             go.transform.localScale = Vector3.one * Range(rng, min, max);
@@ -901,9 +902,9 @@ namespace TheAlas.EditorTools
             new(Range(rng, -MapHalfSize + edgeMargin, MapHalfSize - edgeMargin), 0f,
                 Range(rng, -MapHalfSize + edgeMargin, MapHalfSize - edgeMargin));
 
-        static float Range(Random rng, float min, float max) => min + (float)rng.NextDouble() * (max - min);
+        internal static float Range(Random rng, float min, float max) => min + (float)rng.NextDouble() * (max - min);
 
-        static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
+        internal static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
 
         internal static void EnsureFolder(string path)
         {

@@ -21,7 +21,7 @@ Daftar ini menjadi sumber untuk halaman kredit di itch.io. Setiap aset dari luar
 | Penunggu alas: model, tekstur (body, kain, celana, kalung Jawa, gigi), dan animasi | Rafael (rig dan animasi tampaknya dari Mixamo; perlu dikonfirmasi Rafael) | `Assets/_Project/Art/Characters/Creature/` |
 | Desain UI: menu utama, kartu cerita, HUD, kertas tugas, pengaturan, layar GAME OVER dan YOU ESCAPE | Citari | `Assets/_Project/UI/Sprites/`, mockup di `Source/UI/` |
 | Efek suara (langkah, semak, napas, detak jantung, makhluk, barang, mobil), ambience hutan, jangkrik, tonggeret, musik bahaya, musik menang | Jaya | `Assets/_Project/Audio/` |
-| Pilihan lapisan tanah, sumur, dan props peternakan untuk map | Gung Wah | Sumur Tua, halaman Gubuk Reyot, lapisan `TL_Grass` dan `TL_Stones` |
+| Map permainan: terrain 780 × 889 m, tata letak rumah, sumur, peternakan, kincir angin, pagar, pohon, dan rumput | Gung Wah | `Assets/_Project/Scenes/GungWah/` |
 
 ## Aset dari luar
 
@@ -35,3 +35,7 @@ Daftar ini menjadi sumber untuk halaman kredit di itch.io. Setiap aset dari luar
 | Tekstur tanah Grass04, GroundStones02, SoilGravel01, Dry02 | Yughues, paket "Yughues Free Ground Materials" | Unity Asset Store (tautan perlu dikonfirmasi) | Unity Asset Store EULA | `Assets/ThirdParty/YughuesFreeGroundMaterials/` |
 | Tekstur helai rumput GrassField | Staggart Creations, demo paket "Vegetation Spawner" | Unity Asset Store (tautan perlu dikonfirmasi) | Unity Asset Store EULA | `Assets/ThirdParty/VegetationSpawner/` |
 | Pagar kayu fence_wood_02mp_02_off_c | Stylized Fences 2 (pembuat perlu dikonfirmasi) | Unity Asset Store (perlu dikonfirmasi Gung Wah) | Unity Asset Store EULA (perlu dikonfirmasi) | `Assets/ThirdParty/Stylized Fences 2/` |
+| Pohon Conifer Bare (BOTD) dan shader CTI Runtime Components URP | Forst | Unity Asset Store, "Conifers [BOTD]" (tautan perlu dikonfirmasi Gung Wah) | Unity Asset Store EULA (perlu dikonfirmasi) | `Assets/ThirdParty/Forst/` (tekstur dibatasi 1024) |
+| Model Abandoned House beserta teksturnya | Perlu dikonfirmasi Gung Wah | Perlu dikonfirmasi Gung Wah | Perlu dikonfirmasi | `Assets/ThirdParty/Abandoned House 1/` (tekstur dibatasi 1024) |
+| Tekstur rumput PT_Grass_01 dan PT_Grass_High_01 | Polytope Studio, paket "Lowpoly Environment" | Unity Asset Store (tautan perlu dikonfirmasi) | Unity Asset Store EULA (perlu dikonfirmasi) | `Assets/ThirdParty/Polytope Studio/` |
+| Lapisan terrain Mud_Lieves_2 | FlipGameDev, paket "Terrain & Grass Pack" | Perlu dikonfirmasi Gung Wah | Perlu dikonfirmasi | `Assets/ThirdParty/FlipGameDev/` |
