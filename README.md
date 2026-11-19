@@ -1,16 +1,17 @@
 # The Alas
 
-Survival horror first-person: kumpulkan empat suku cadang mobil dan kabur dari hutan dalam 7:30, sementara penunggu alas memburu lewat suara. Dokumen desain lengkap ada di `The Alas — Dokumen Desain Game.docx` (di luar repo).
+Survival horror first-person: kumpulkan lima suku cadang mobil (kunci, ban, aki, bensin, oli) dan kabur dari hutan dalam 7:30, sementara penunggu alas memburu lewat suara. Dokumen desain lengkap ada di `The Alas — Dokumen Desain Game.docx` (di luar repo).
 
 - Engine: Unity 6000.3.6f1, URP, Input System
 - Scene utama: `Assets/_Project/Scenes/Hutan.unity`
-- Kontrol: WASD jalan · Shift lari · C jongkok · Spasi lompat · F senter · E ambil / setor / nyalakan mesin · 1–9 atau scroll pilih barang · Q buang (jongkok: letakkan pelan) · G atau klik kanan lempar · Esc lepas kursor · R main lagi di layar akhir
+- Kontrol (sesuai layar Pengaturan Citari): WASD jalan · Shift lari · C jongkok · Spasi lompat · E atau klik kiri ambil / setor / nyalakan mesin · 1–9 atau scroll pilih barang · Q buang (jongkok: letakkan pelan) · G atau klik kanan lempar · H kertas tugas · Tab (tahan) daftar kontrol · F layar penuh · M bunyi · Esc jeda · R main lagi di layar akhir. Senter selalu menyala
+- Alur: menu utama (Play Game / Setting / Quit) → kartu cerita (Skip) → cutscene → ronde → GAME OVER atau YOU ESCAPE (Ulang langsung main lagi tanpa menu dan cutscene; Menu kembali ke menu utama)
 - Cutscene pembuka sekitar 40 detik (komponen `IntroCutscene` di `Systems`): kamera turun ke mobil, mendekati mobil, sepasang mata menyala di hutan, judul dan tagline, lalu sudut pandang pemain (terduduk di samping mobil, berdiri, berbalik ke hutan) yang berakhir tepat di pose kamera pemain sehingga kontrol diserahkan tanpa potongan. Tanpa model karakter. Timer, makhluk, kontrol, dan HUD baru jalan setelah cutscene. Spasi atau Enter untuk melewati. Teks dan durasi tiap shot bisa diubah di Inspector.
 - E di mobil tanpa membawa barang saat suku cadang belum lengkap: coba starter. Hanya bunyi starter gagal yang berisik (suara 30), jadi berisiko
 - Audio (rekaman Jaya, `Assets/_Project/Audio`): langkah menurut permukaan dan beban (`PlayerAudio`), napas saat kehabisan stamina, geraman dan endusan makhluk dari posisinya (`CreatureAudio`), bunyi ambil dan jatuh barang menurut bahannya (klip di `ITEM_*.asset`), bagasi, pintu, mesin, dan starter mobil, serta ambience hutan, detak jantung yang makin cepat saat makhluk dekat, musik bahaya saat diburu, musik menang, dan bunyi tertangkap (`AtmosphereAudio` di `Systems`). Klip dipasang otomatis oleh builder dari nama file; ganti file `.wav`-nya dengan nama yang sama untuk memperbarui
 - F1 (Editor dan development build): status makhluk, jarak, dan suara untuk playtest
 - F2 (Editor dan development build): panggil makhluk ke 20 m di belakang pemain (ke depan kalau belakang di luar peta)
-- HUD saat ini adalah `TemporaryHud` (IMGUI) dan akan diganti HUD dari Citari
+- UI dari desain Citari (`Assets/_Project/UI/Sprites`, dikumpulkan di `UI_Skin.asset`; mockup asli di `Source/UI`): `MainMenu`, kartu cerita di `IntroCutscene`, `GameHud` (timer, bar Suara dan Nafas, slot, kertas tugas berisi lokasi tiap suku cadang, daftar kontrol, jeda, layar akhir), dan `SettingsPanel` (sensitivitas mouse, kecerahan, volume, sudut pandang, kualitas grafis, balik arah mouse; disimpan di PlayerPrefs, diterapkan `SettingsApplier`). Layar penuh memakai mockup sebagai latar dan potongan merahnya saat tombol disorot. Bagian mikrofon diredupkan karena Unity WebGL tidak bisa membaca mikrofon
 
 ## Struktur folder
 

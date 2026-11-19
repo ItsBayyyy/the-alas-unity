@@ -1,7 +1,6 @@
 using System;
 using TheAlas.Player;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace TheAlas.Core
 {
@@ -66,7 +65,7 @@ namespace TheAlas.Core
         {
             if (IsOver)
             {
-                if (input.RestartPressed) SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                if (input.RestartPressed) GameFlow.Reload(skipIntro: true);
                 return;
             }
 

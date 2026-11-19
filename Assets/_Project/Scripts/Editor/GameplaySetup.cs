@@ -39,23 +39,28 @@ namespace TheAlas.EditorTools
             public readonly string Id, DisplayName;
             public readonly float Weight;
             public readonly Vector3 Size;
+            /// <summary>Placeholder berbentuk roda berdiri (sumbu putar = X), bukan kotak.</summary>
+            public readonly bool IsWheel;
 
-            public PartSpec(string id, string displayName, float weight, Vector3 size)
+            public PartSpec(string id, string displayName, float weight, Vector3 size, bool isWheel = false)
             {
                 Id = id;
                 DisplayName = displayName;
                 Weight = weight;
                 Size = size;
+                IsWheel = isWheel;
             }
         }
 
-        // Bobot dari GDD; ukuran dibesarkan sedikit dari aslinya supaya mudah dibidik di greybox.
+        // Daftar dan urutannya mengikuti kertas tugas di desain UI Citari: Kunci, Ban, Aki, Bensin, Oli.
+        // Bobot ban serep (4) di antara aki dan jeriken; ukuran sedikit dibesarkan supaya mudah dibidik.
         static readonly PartSpec[] Parts =
         {
             new("KunciMobil", "Kunci Mobil", 0.5f, new Vector3(0.26f, 0.06f, 0.12f)),
-            new("Busi", "Busi", 0.5f, new Vector3(0.1f, 0.1f, 0.3f)),
+            new("Ban", "Ban", 4f, new Vector3(0.22f, 0.62f, 0.62f), isWheel: true),
             new("Aki", "Aki", 3f, new Vector3(0.34f, 0.22f, 0.2f)),
             new("JerikenBensin", "Jeriken Bensin", 3.5f, new Vector3(0.3f, 0.42f, 0.17f)),
+            new("FilterOli", "Filter Oli", 0.5f, new Vector3(0.12f, 0.16f, 0.12f)),
         };
 
         // Titik muncul suku cadang, dalam ruang lokal landmark (+Z menghadap mobil).
@@ -114,7 +119,9 @@ namespace TheAlas.EditorTools
             var systems = new GameObject("Systems");
             var round = systems.AddComponent<RoundManager>();
             var spawner = systems.AddComponent<ItemSpawner>();
-            var hud = systems.AddComponent<TemporaryHud>();
+            var hud = systems.AddComponent<GameHud>();
+            var skin = EnsureUiSkin();
+            var look = player.GetComponent<PlayerLook>();
 
             var input = player.GetComponent<PlayerInputReader>();
             var motor = player.GetComponent<PlayerMotor>();
@@ -125,18 +132,82 @@ namespace TheAlas.EditorTools
             var car = carObject.GetComponent<Car>();
             var creature = creatureObject.GetComponent<CreatureAI>();
 
-            Wire(round, ("input", input), ("motor", motor), ("look", player.GetComponent<PlayerLook>()),
+            Wire(round, ("input", input), ("motor", motor), ("look", look),
                 ("inventory", inventory), ("interactor", interactor));
             Wire(spawner, ("car", car));
             Wire(creature, ("player", noise));
-            Wire(hud, ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
-                ("interactor", interactor), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
+            Wire(hud, ("skin", skin), ("round", round), ("motor", motor), ("noise", noise), ("inventory", inventory),
+                ("interactor", interactor), ("look", look), ("car", car), ("spawner", spawner), ("viewPoint", viewPoint), ("creature", creature));
+
+            var settings = systems.AddComponent<SettingsApplier>();
+            Wire(settings, ("look", look), ("playerCamera", viewPoint.GetComponent<Camera>()),
+                ("flashlight", player.GetComponentInChildren<Flashlight>().GetComponent<Light>()), ("ground", Object.FindFirstObjectByType<Terrain>()));
 
             BuildAtmosphere(systems, creature);
             BakeNavMesh();
-            BuildIntro(systems, player, carObject.transform,
-                new Behaviour[] { motor, player.GetComponent<PlayerLook>(), inventory, interactor, round, creature,
+            var intro = BuildIntro(systems, player, carObject.transform,
+                new Behaviour[] { motor, look, inventory, interactor, round, creature,
                     creatureObject.GetComponent<CreatureAudio>(), hud });
+            Wire(intro, ("skin", skin));
+            Wire(systems.AddComponent<MainMenu>(), ("skin", skin), ("intro", intro));
+        }
+
+        // ---------- UI (desain Citari) ----------
+
+        const string UiSpriteDir = GreyboxBuilder.Root + "/UI/Sprites";
+
+        /// <summary>
+        /// Aset UiSkin berisi semua gambar UI. Teksturnya diimpor tanpa mipmap dan tanpa pembulatan
+        /// ukuran supaya tetap tajam dan koordinat mockup cocok satu banding satu.
+        /// </summary>
+        static UiSkin EnsureUiSkin()
+        {
+            const string path = GreyboxBuilder.Root + "/UI/UI_Skin.asset";
+            var skin = AssetDatabase.LoadAssetAtPath<UiSkin>(path);
+            if (!skin)
+            {
+                skin = ScriptableObject.CreateInstance<UiSkin>();
+                AssetDatabase.CreateAsset(skin, path);
+            }
+
+            Texture2D T(string name)
+            {
+                string texPath = $"{UiSpriteDir}/UI_{name}.png";
+                if (AssetImporter.GetAtPath(texPath) is TextureImporter importer && importer.mipmapEnabled)
+                {
+                    importer.mipmapEnabled = false;
+                    importer.npotScale = TextureImporterNPOTScale.None;
+                    importer.wrapMode = TextureWrapMode.Clamp;
+                    importer.alphaIsTransparency = true;
+                    importer.maxTextureSize = 2048;
+                    importer.SaveAndReimport();
+                }
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            }
+
+            skin.menu = T("Menu");
+            skin.menuPlayHover = T("Menu_Play_Hover");
+            skin.menuSettingHover = T("Menu_Setting_Hover");
+            skin.menuQuitHover = T("Menu_Quit_Hover");
+            skin.story = T("Story");
+            skin.storySkipHover = T("Story_Skip_Hover");
+            skin.gameOver = T("GameOver");
+            skin.escape = T("Escape");
+            skin.endUlangHover = T("End_Ulang_Hover");
+            skin.endMenuHover = T("End_Menu_Hover");
+            skin.settings = T("Settings");
+            skin.settingsCheck = T("Settings_Check");
+            skin.hudSlot = T("Hud_Slot");
+            skin.hudSuara = T("Hud_Suara");
+            skin.hudNafas = T("Hud_Nafas");
+            skin.hudHints = T("Hud_Hints");
+            skin.taskPaper = T("Task_Paper");
+            skin.taskBox = T("Task_Box");
+            skin.taskChecks = Enumerable.Range(1, 5).Select(i => T($"Task_Check_{i:00}")).ToArray();
+            // Tulisan di kertas tugas, urut sama dengan Parts (Kunci, Ban, Aki, Bensin, Oli).
+            skin.taskLabels = new[] { "Kunci", "Ban", "Aki", "Bensin", "Oli" }.Select(n => T($"Task_{n}")).ToArray();
+            EditorUtility.SetDirty(skin);
+            return skin;
         }
 
         // ---------- Audio (rekaman Jaya) ----------
@@ -152,7 +223,8 @@ namespace TheAlas.EditorTools
         static readonly Dictionary<string, string> ItemMaterial = new()
         {
             ["Aki"] = "Metal", ["FilterOli"] = "Metal", ["JerikenBensin"] = "Metal", ["KunciMobil"] = "Metal",
-            ["Busi"] = "Ceramic", ["Stir"] = "Wood",
+            // Belum ada rekaman karet; ban memakai bunyi kayu yang paling mirip dentum tumpul.
+            ["Ban"] = "Wood", ["Stir"] = "Wood",
         };
 
         static void ConfigureAudio(Dictionary<string, GameObject> prefabs)
@@ -196,18 +268,9 @@ namespace TheAlas.EditorTools
             {
                 var data = AssetDatabase.LoadAssetAtPath<ItemData>($"{ItemDataDir}/ITEM_{id}.asset");
                 if (!data) continue;
-                SetReferences(data, "pickupClips", material switch
-                {
-                    "Ceramic" => Sfx("Item_Ceramic_Pickup_01", "Item_Ceramic_Pickup_02"),
-                    "Wood" => Sfx("Item_Wood_Pickup_01"),
-                    _ => Sfx("Item_Metal_Pickup_01"),
-                });
-                SetReferences(data, "impactClips", material switch
-                {
-                    "Ceramic" => Sfx("Item_Ceramic_Drop_01", "Item_Ceramic_Drop_02", "Item_Ceramic_Drop_03"),
-                    "Wood" => Sfx("Item_Wood_Drop_01"),
-                    _ => Sfx("Item_Metal_Drop_01"),
-                });
+                bool wood = material == "Wood";
+                SetReferences(data, "pickupClips", Sfx(wood ? "Item_Wood_Pickup_01" : "Item_Metal_Pickup_01"));
+                SetReferences(data, "impactClips", Sfx(wood ? "Item_Wood_Drop_01" : "Item_Metal_Drop_01"));
                 EditorUtility.SetDirty(data);
             }
         }
@@ -286,7 +349,7 @@ namespace TheAlas.EditorTools
         /// Cutscene tanpa model karakter: kamera turun ke mobil, mendekati mobil, lalu menatap hutan
         /// tempat sepasang mata menyala sebentar. Posisi shot dihitung dari mobil dan titik muncul pemain.
         /// </summary>
-        static void BuildIntro(GameObject systems, GameObject player, Transform car, Behaviour[] paused)
+        static IntroCutscene BuildIntro(GameObject systems, GameObject player, Transform car, Behaviour[] paused)
         {
             var camObject = new GameObject("CutsceneCamera");
             camObject.transform.SetParent(systems.transform, false);
@@ -322,7 +385,7 @@ namespace TheAlas.EditorTools
                 // Berakhir di dalam area kosong sekitar mobil (radius 14 m) supaya kamera tidak menembus tajuk pohon.
                 new ShotSpec("Malam itu, mobilmu mogok di tepi alas.", 6.5f,
                     carPos + new Vector3(-14f, 18f, -32f), carPos + new Vector3(-5f, 5f, -11f), carPos + Vector3.up),
-                new ShotSpec("Kunci, busi, aki, bensin… semuanya tertinggal di dalam hutan.", 6f,
+                new ShotSpec("Kunci, ban, aki, bensin, oli… semuanya tercecer di dalam hutan.", 6f,
                     carPos + new Vector3(-5.5f, 1.3f, -4.5f), carPos + new Vector3(-3.6f, 1.0f, -3.0f), carPos + new Vector3(0.5f, 0.8f, 0f)),
                 new ShotSpec("Ada yang menunggu di antara pepohonan.", 7f,
                     eye, eye + south * 4f + Vector3.down * 0.05f, eyesRoot.position) { Eyes = true },
@@ -356,6 +419,7 @@ namespace TheAlas.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             camObject.SetActive(false); // cutscene sendiri yang menyalakannya
+            return intro;
         }
 
         class ShotSpec
@@ -506,8 +570,14 @@ namespace TheAlas.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            var prefab = GreyboxBuilder.EnsurePrefab($"Items/PF_Item_{spec.Id}",
-                (root, model) => GreyboxBuilder.Box(model, "Body", Vector3.up * (spec.Size.y / 2f), spec.Size, palette.ItemPart, collider: false));
+            var prefab = GreyboxBuilder.EnsurePrefab($"Items/PF_Item_{spec.Id}", (root, model) =>
+            {
+                if (spec.IsWheel)
+                    GreyboxBuilder.Cylinder(model, "Body", Vector3.up * (spec.Size.y / 2f), spec.Size.y, spec.Size.x, palette.ItemPart,
+                        collider: false, euler: new Vector3(0f, 0f, 90f));
+                else
+                    GreyboxBuilder.Box(model, "Body", Vector3.up * (spec.Size.y / 2f), spec.Size, palette.ItemPart, collider: false);
+            });
 
             Configure(prefab, root => ConfigureItem(root, data, spec));
             Wire(data, ("worldPrefab", prefab));

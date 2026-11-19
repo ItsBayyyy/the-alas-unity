@@ -3,34 +3,18 @@ using UnityEngine;
 namespace TheAlas.Player
 {
     /// <summary>
-    /// Senter di tangan pemain. Arah sorotnya sedikit tertinggal dari kamera
-    /// supaya terasa dipegang, bukan ditempel ke mata.
+    /// Senter di tangan pemain, selalu menyala (tombol F dipakai untuk layar penuh di desain UI).
+    /// Arah sorotnya sedikit tertinggal dari kamera supaya terasa dipegang, bukan ditempel ke mata.
     /// </summary>
     [RequireComponent(typeof(Light))]
     public class Flashlight : MonoBehaviour
     {
         [Tooltip("Makin besar, makin cepat sorot mengejar arah pandang")]
         [SerializeField] float followSharpness = 14f;
-        [SerializeField] bool startOn = true;
 
-        Light spot;
-        PlayerInputReader input;
         Quaternion smoothedRotation;
 
-        public bool IsOn => spot.enabled;
-
-        void Awake()
-        {
-            spot = GetComponent<Light>();
-            input = GetComponentInParent<PlayerInputReader>();
-            spot.enabled = startOn;
-            smoothedRotation = transform.parent.rotation;
-        }
-
-        void Update()
-        {
-            if (input.FlashlightPressed) spot.enabled = !spot.enabled;
-        }
+        void Awake() => smoothedRotation = transform.parent.rotation;
 
         void LateUpdate()
         {

@@ -23,6 +23,9 @@ namespace TheAlas.Player
             set => sensitivity = Mathf.Clamp(value, 0.01f, 0.5f);
         }
 
+        /// <summary>Mouse ke atas membuat pandangan turun (pengaturan "balik arah mouse atas-bawah").</summary>
+        public bool InvertY { get; set; }
+
         void Awake()
         {
             input = GetComponent<PlayerInputReader>();
@@ -41,7 +44,7 @@ namespace TheAlas.Player
 
             Vector2 delta = input.Look * sensitivity;
             yaw += delta.x;
-            pitch = Mathf.Clamp(pitch - delta.y, -maxPitch, maxPitch);
+            pitch = Mathf.Clamp(pitch + (InvertY ? delta.y : -delta.y), -maxPitch, maxPitch);
 
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);

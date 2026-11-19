@@ -571,4 +571,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheAlas.Player.Flashlight
   followSharpness: 14
-  startOn: 1

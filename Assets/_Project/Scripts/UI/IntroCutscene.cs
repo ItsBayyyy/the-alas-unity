@@ -6,10 +6,11 @@ using UnityEngine.InputSystem;
 namespace TheAlas.UI
 {
     /// <summary>
-    /// Cutscene pembuka tanpa model karakter: shot pengantar dengan teks dan sepasang mata menyala,
-    /// judul, lalu shot dari sudut pandang pemain yang berakhir tepat di pose kamera pemain sehingga
-    /// kontrol diserahkan tanpa potongan. Selama cutscene, timer, makhluk, kontrol pemain, dan HUD ditahan.
-    /// Bisa dilewati dengan Spasi atau Enter.
+    /// Cutscene pembuka tanpa model karakter: kartu cerita (desain Citari), shot pengantar dengan teks
+    /// dan sepasang cahaya menyala, judul, lalu shot dari sudut pandang pemain yang berakhir tepat di pose
+    /// kamera pemain sehingga kontrol diserahkan tanpa potongan. Dimulai dari menu utama lewat
+    /// <see cref="Play"/>. Selama menu dan cutscene, timer, makhluk, kontrol pemain, dan HUD ditahan.
+    /// Bisa dilewati dengan Spasi, Enter, atau tombol Skip.
     /// </summary>
     public class IntroCutscene : MonoBehaviour
     {
@@ -45,6 +46,10 @@ namespace TheAlas.UI
         [SerializeField] float titleLineDuration = 2.6f;
         [SerializeField] float fadeDuration = 0.8f;
 
+        [Header("Kartu cerita")]
+        [SerializeField] UiSkin skin;
+        [SerializeField] float storyDuration = 12f;
+
         [Header("Suasana cutscene")]
         [Tooltip("Cahaya bulan dibuat lebih terang selama cutscene supaya hutan terbaca; gameplay kembali gelap")]
         [SerializeField] Light moonlight;
@@ -70,6 +75,11 @@ namespace TheAlas.UI
         bool skipRequested;
         float gameMoonIntensity;
         float gameFogDensity;
+        bool showingStory;
+
+        // Posisi tombol Skip di mockup kartu cerita (1920 × 1080).
+        static readonly Rect SkipHit = new(1440f, 870f, 250f, 140f);
+        static readonly Vector2 SkipArt = new(1466f, 887f);
 
         public bool IsPlaying { get; private set; }
 
@@ -88,9 +98,24 @@ namespace TheAlas.UI
             }
         }
 
-        IEnumerator Start()
+        /// <summary>Mulai cutscene (dari tombol Play di menu utama).</summary>
+        public void Play()
+        {
+            if (IsPlaying) return;
+            StartCoroutine(Run());
+        }
+
+        /// <summary>Langsung ke permainan tanpa cutscene ("Ulang" di layar akhir).</summary>
+        public void SkipAll()
+        {
+            skipRequested = true;
+            Play();
+        }
+
+        IEnumerator Run()
         {
             IsPlaying = true;
+            yield return ShowStory();
             foreach (var shot in shots)
             {
                 if (skipRequested) break;
@@ -120,6 +145,15 @@ namespace TheAlas.UI
             var keyboard = Keyboard.current;
             if (IsPlaying && keyboard != null && (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame))
                 skipRequested = true;
+        }
+
+        IEnumerator ShowStory()
+        {
+            if (skipRequested || !skin || !skin.story) yield break;
+            showingStory = true;
+            for (float t = 0f; t < storyDuration && !skipRequested; t += Time.deltaTime)
+                yield return null;
+            showingStory = false;
         }
 
         IEnumerator PlayShot(Shot shot, Action<float> onTime = null)
@@ -234,6 +268,13 @@ namespace TheAlas.UI
 
         void OnGUI()
         {
+            if (showingStory)
+            {
+                UiDraw.FullScreen(skin.story);
+                var art = UiDraw.Fit(new Rect(SkipArt.x, SkipArt.y, skin.storySkipHover.width, skin.storySkipHover.height));
+                if (UiDraw.Button(UiDraw.Fit(SkipHit), art, skin.storySkipHover)) skipRequested = true;
+                return;
+            }
             if (blackout <= 0f && string.IsNullOrEmpty(caption) && string.IsNullOrEmpty(title)) return;
             EnsureStyles();
 

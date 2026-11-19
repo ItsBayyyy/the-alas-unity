@@ -4,9 +4,9 @@ using UnityEngine.InputSystem;
 namespace TheAlas.Player
 {
     /// <summary>
-    /// Satu-satunya tempat binding keyboard dan mouse pemain.
+    /// Satu-satunya tempat binding keyboard dan mouse pemain (tombol UI seperti H, M, F, Tab ada di HUD).
     /// Ctrl sengaja tidak dipakai: di build WebGL, Ctrl+W menutup tab browser juri.
-    /// Klik kiri dipakai untuk mengunci kursor, jadi interaksi hanya lewat E.
+    /// Klik kiri mengunci kursor saat kursor bebas, dan berinteraksi saat kursor terkunci.
     /// </summary>
     public class PlayerInputReader : MonoBehaviour
     {
@@ -17,7 +17,6 @@ namespace TheAlas.Player
         InputAction sprint;
         InputAction crouch;
         InputAction jump;
-        InputAction flashlight;
         InputAction interact;
         InputAction drop;
         InputAction throwItem;
@@ -32,7 +31,6 @@ namespace TheAlas.Player
         public bool SprintHeld => sprint.IsPressed();
         public bool CrouchPressed => crouch.WasPressedThisFrame();
         public bool JumpPressed => jump.WasPressedThisFrame();
-        public bool FlashlightPressed => flashlight.WasPressedThisFrame();
         public bool InteractPressed => interact.WasPressedThisFrame();
         public bool DropPressed => drop.WasPressedThisFrame();
         public bool ThrowPressed => throwItem.WasPressedThisFrame();
@@ -74,8 +72,8 @@ namespace TheAlas.Player
             sprint = new InputAction("Sprint", binding: "<Keyboard>/leftShift");
             crouch = new InputAction("Crouch", binding: "<Keyboard>/c");
             jump = new InputAction("Jump", binding: "<Keyboard>/space");
-            flashlight = new InputAction("Flashlight", binding: "<Keyboard>/f");
             interact = new InputAction("Interact", binding: "<Keyboard>/e");
+            interact.AddBinding("<Mouse>/leftButton");
             drop = new InputAction("Drop", binding: "<Keyboard>/q");
             throwItem = new InputAction("Throw", binding: "<Keyboard>/g");
             throwItem.AddBinding("<Mouse>/rightButton");
@@ -110,7 +108,6 @@ namespace TheAlas.Player
             yield return sprint;
             yield return crouch;
             yield return jump;
-            yield return flashlight;
             yield return interact;
             yield return drop;
             yield return throwItem;

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da9d73faeb10ca747bbcbef6252fffd0, type: 3}
+  m_Name: UI_Skin
+  m_EditorClassIdentifier: Assembly-CSharp::TheAlas.UI.UiSkin
+  menu: {fileID: 2800000, guid: b636f80df5be45544bc48e8438cce1ce, type: 3}
+  menuPlayHover: {fileID: 2800000, guid: eaeb3895d9c142c4391ab05105a65220, type: 3}
+  menuSettingHover: {fileID: 2800000, guid: 5b4f38c257560fa4a8eb1e6148ccdece, type: 3}
+  menuQuitHover: {fileID: 2800000, guid: d10da63036e03304e830e9b9c9f45ddf, type: 3}
+  story: {fileID: 2800000, guid: 3c31e42fc40aa044ea9c3d5d5330eafe, type: 3}
+  storySkipHover: {fileID: 2800000, guid: 62ebb540f1ee4994d88229080d81cf89, type: 3}
+  gameOver: {fileID: 2800000, guid: 60cac5b391d78c448bb3639090545a59, type: 3}
+  escape: {fileID: 2800000, guid: ae8a15a074c982846bd0ef2eacc355ec, type: 3}
+  endUlangHover: {fileID: 2800000, guid: f24a6dc5af3b8e941900828f06561d39, type: 3}
+  endMenuHover: {fileID: 2800000, guid: 35f915d38dafc834ba00b2987ec398ff, type: 3}
+  settings: {fileID: 2800000, guid: 99620b346df68714b826b5cf2732ad12, type: 3}
+  settingsCheck: {fileID: 2800000, guid: 1c9f593cb4ae07a4399ce7848924ec31, type: 3}
+  hudSlot: {fileID: 2800000, guid: 218f88a5bb0302843b9c5f952458b2dc, type: 3}
+  hudSuara: {fileID: 2800000, guid: 7b7be1a485a8428448e34ab9149f8b49, type: 3}
+  hudNafas: {fileID: 2800000, guid: 762ef387492232e4fa2d79622dc49c1f, type: 3}
+  hudHints: {fileID: 2800000, guid: 6a8a5ccf5540a8346b593f732a35da65, type: 3}
+  taskPaper: {fileID: 2800000, guid: e5fbe9201e32131469c20e3788e1b9a6, type: 3}
+  taskBox: {fileID: 2800000, guid: 9a45fe637982bd6439bfa446d98d7a0a, type: 3}
+  taskChecks:
+  - {fileID: 2800000, guid: 6169af108de09994fb5a1649a59303eb, type: 3}
+  - {fileID: 2800000, guid: b426d935f9ff1f64fb7bc4ea842417f4, type: 3}
+  - {fileID: 2800000, guid: 83b72d42b9dc67f4089f65b0ab0ed408, type: 3}
+  - {fileID: 2800000, guid: 318691e05b181024bbd1e3b96fcc0f4a, type: 3}
+  - {fileID: 2800000, guid: 9d8f251232de507428491205c3c6c073, type: 3}
+  taskLabels:
+  - {fileID: 2800000, guid: 036599a1ece1b194c9a651b6526af8fa, type: 3}
+  - {fileID: 2800000, guid: 107327c3a9ed80c4c9b5caef5363df02, type: 3}
+  - {fileID: 2800000, guid: 3a669f9db606cf543ab7a98bd2f4a910, type: 3}
+  - {fileID: 2800000, guid: bdce0a681ddbfcd4babb554ef23dd995, type: 3}
+  - {fileID: 2800000, guid: 5df048b91a0e01c44aa025e9b3f4dfe9, type: 3}
