@@ -300,7 +300,7 @@ namespace TheAlas.UI
             string text =
                 $"[F1] Makhluk: {creature.State}, jarak {creature.DistanceToPlayer:0.0} m\n" +
                 $"Suara tubuh {noise.BodyNoise:0}, total {noise.Total:0}, permukaan {noise.CurrentSurface}\n" +
-                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s, lompat {motor.JumpHeight:0.00} m";
+                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s";
             var rect = new Rect(16, 150, 420, 70);
             UiDraw.Fill(rect, UiDraw.Panel);
             UiDraw.Label(new Rect(rect.x + 8, rect.y + 4, rect.width - 16, rect.height - 8), text, 13, UiDraw.Cream, TextAnchor.UpperLeft);

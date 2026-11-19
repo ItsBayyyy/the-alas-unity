@@ -4,9 +4,9 @@ using UnityEngine;
 namespace TheAlas.Player
 {
     /// <summary>
-    /// Gerak first-person: jalan, lari, jongkok, lompat, dan stamina.
+    /// Gerak first-person: jalan, lari, jongkok, dan stamina (tanpa lompat).
     /// Semua angka default diambil dari tabel parameter GDD; beban (load) memotong
-    /// kecepatan, stamina, dan tinggi lompatan sesuai rumus di sana.
+    /// kecepatan dan stamina sesuai rumus di sana.
     /// Pivot transform berada di telapak kaki.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(PlayerInputReader))]
@@ -41,12 +41,7 @@ namespace TheAlas.Player
         [Tooltip("Batas kecepatan saat kelelahan (m/s)")]
         [SerializeField] float exhaustedSpeedCap = 2.1f;
 
-        [Header("Lompat")]
-        [Tooltip("Dipilih supaya batang tumbang 0,45 m tidak terlewati di atas sekitar 3 unit beban")]
-        [SerializeField] float baseJumpHeight = 0.6f;
-        [SerializeField] float jumpHeightLossPerLoad = 0.07f;
-        [SerializeField] float jumpCostBase = 10f;
-        [SerializeField] float jumpCostPerLoad = 2f;
+        [Header("Gravitasi")]
         [SerializeField] float gravity = -20f;
         [Tooltip("Waktu di udara minimum supaya sentuhan tanah dihitung mendarat (bukan sekadar tersandung)")]
         [SerializeField] float minAirTimeForLanding = 0.25f;
@@ -64,7 +59,6 @@ namespace TheAlas.Player
         float verticalVelocity;
         float airTime;
 
-        public event Action Jumped;
         /// <summary>Dipanggil saat menyentuh tanah lagi, dengan kecepatan jatuh (m/s, positif).</summary>
         public event Action<float> Landed;
 
@@ -82,8 +76,6 @@ namespace TheAlas.Player
         public bool IsGrounded => controller.isGrounded;
         public float HorizontalSpeed => horizontalVelocity.magnitude;
         public float SpeedMultiplier => Mathf.Max(minSpeedMultiplier, 1f - speedLossPerLoad * load);
-        public float JumpHeight => baseJumpHeight * Mathf.Max(0f, 1f - jumpHeightLossPerLoad * load);
-        public float JumpCost => jumpCostBase + jumpCostPerLoad * load;
 
         void Awake()
         {
@@ -127,18 +119,7 @@ namespace TheAlas.Player
             if (controller.isGrounded && verticalVelocity < 0f)
                 verticalVelocity = -2f; // tekanan kecil ke bawah supaya isGrounded stabil di turunan
 
-            if (input.JumpPressed) TryJump();
-
             verticalVelocity += gravity * dt;
-        }
-
-        void TryJump()
-        {
-            if (!controller.isGrounded || IsCrouching || Stamina < JumpCost || JumpHeight <= 0.01f) return;
-
-            Stamina -= JumpCost;
-            verticalVelocity = Mathf.Sqrt(2f * JumpHeight * -gravity);
-            Jumped?.Invoke();
         }
 
         void DetectLanding(float fallSpeed, float dt)

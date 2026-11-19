@@ -22,7 +22,6 @@ namespace TheAlas.Player
         [SerializeField] float gravelBonus = 10f;
 
         [Header("Lonjakan")]
-        [SerializeField] float jumpNoise = 6f;
         [SerializeField] float landBase = 20f;
         [SerializeField] float landPerLoad = 5f;
         [SerializeField] float engineNoise = 100f;
@@ -53,13 +52,11 @@ namespace TheAlas.Player
 
         void OnEnable()
         {
-            motor.Jumped += OnJumped;
             motor.Landed += OnLanded;
         }
 
         void OnDisable()
         {
-            motor.Jumped -= OnJumped;
             motor.Landed -= OnLanded;
         }
 
@@ -106,8 +103,6 @@ namespace TheAlas.Player
             }
             return result;
         }
-
-        void OnJumped() => AddSpike(jumpNoise);
 
         void OnLanded(float fallSpeed) => AddSpike(landBase + landPerLoad * motor.Load);
     }

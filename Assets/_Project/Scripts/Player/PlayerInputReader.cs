@@ -16,7 +16,6 @@ namespace TheAlas.Player
         InputAction look;
         InputAction sprint;
         InputAction crouch;
-        InputAction jump;
         InputAction interact;
         InputAction drop;
         InputAction throwItem;
@@ -30,7 +29,6 @@ namespace TheAlas.Player
         public Vector2 Look => look.ReadValue<Vector2>();
         public bool SprintHeld => sprint.IsPressed();
         public bool CrouchPressed => crouch.WasPressedThisFrame();
-        public bool JumpPressed => jump.WasPressedThisFrame();
         public bool InteractPressed => interact.WasPressedThisFrame();
         public bool DropPressed => drop.WasPressedThisFrame();
         public bool ThrowPressed => throwItem.WasPressedThisFrame();
@@ -71,7 +69,6 @@ namespace TheAlas.Player
             look = new InputAction("Look", binding: "<Mouse>/delta");
             sprint = new InputAction("Sprint", binding: "<Keyboard>/leftShift");
             crouch = new InputAction("Crouch", binding: "<Keyboard>/c");
-            jump = new InputAction("Jump", binding: "<Keyboard>/space");
             interact = new InputAction("Interact", binding: "<Keyboard>/e");
             interact.AddBinding("<Mouse>/leftButton");
             drop = new InputAction("Drop", binding: "<Keyboard>/q");
@@ -107,7 +104,6 @@ namespace TheAlas.Player
             yield return look;
             yield return sprint;
             yield return crouch;
-            yield return jump;
             yield return interact;
             yield return drop;
             yield return throwItem;
