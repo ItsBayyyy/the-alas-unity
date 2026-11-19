@@ -1,4 +1,5 @@
 using System.Collections;
+using TheAlas.Audio;
 using TheAlas.Core;
 using TheAlas.Player;
 using UnityEngine;
@@ -29,6 +30,7 @@ namespace TheAlas.UI
             if (GameFlow.SkipIntroOnce)
             {
                 GameFlow.SkipIntroOnce = false;
+                StartAmbience();
                 intro.SkipAll();
                 enabled = false;
                 return;
@@ -54,6 +56,7 @@ namespace TheAlas.UI
             {
                 MicrophoneInput.Begin(); // browser hanya memberi akses mikrofon dari klik pemain
                 intro.Play();
+                StartAmbience();
                 started = true;
                 StartCoroutine(FadeOutMusic());
             }
@@ -65,6 +68,12 @@ namespace TheAlas.UI
             {
                 Application.Quit(); // di WebGL tidak berpengaruh; pemain cukup menutup tab
             }
+        }
+
+        // Ambience hutan ada di objek Systems yang sama (dipasang GameplaySetup).
+        void StartAmbience()
+        {
+            if (TryGetComponent<AtmosphereAudio>(out var atmosphere)) atmosphere.StartAmbience();
         }
 
         IEnumerator FadeOutMusic()

@@ -39,8 +39,14 @@ namespace TheAlas.Audio
 
         void Start()
         {
-            foreach (var loop in ambienceLoops) loop.Play();
             RoundManager.Instance.StateChanged += OnRoundStateChanged;
+        }
+
+        /// <summary>Dipanggil menu utama saat permainan dimulai; di menu hanya musik menu yang terdengar.</summary>
+        public void StartAmbience()
+        {
+            foreach (var loop in ambienceLoops)
+                if (!loop.isPlaying) loop.Play();
         }
 
         void OnDestroy()
