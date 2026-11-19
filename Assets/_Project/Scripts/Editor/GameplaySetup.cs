@@ -164,6 +164,10 @@ namespace TheAlas.EditorTools
                 ("flashlight", player.GetComponentInChildren<Flashlight>().GetComponent<Light>()), ("ground", Object.FindFirstObjectByType<Terrain>()));
 
             BuildAtmosphere(systems, creature);
+            var scareAudio = new GameObject("JumpscareAudio");
+            scareAudio.transform.SetParent(systems.transform, false);
+            Wire(systems.AddComponent<Jumpscare>(), ("creature", creature), ("viewPoint", viewPoint),
+                ("source", EnsureSource(scareAudio, spatial: 0f)), ("scream", Clip("SFX/SFX_Creature_Growl_01")));
             BakeNavMesh(map);
             var intro = BuildIntro(systems, player, carObject.transform,
                 new Behaviour[] { motor, look, inventory, interactor, round, creature,
@@ -600,6 +604,8 @@ namespace TheAlas.EditorTools
             settings.FindProperty("displayName").stringValue = spec.DisplayName;
             settings.FindProperty("weight").floatValue = spec.Weight;
             settings.FindProperty("isCarPart").boolValue = true;
+            settings.FindProperty("icon").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Texture2D>($"{UiSpriteDir}/Items/UI_Icon_{spec.Id}.png");
             settings.ApplyModifiedPropertiesWithoutUndo();
 
             var prefab = GreyboxBuilder.EnsurePrefab($"Items/PF_Item_{spec.Id}", (root, model) =>

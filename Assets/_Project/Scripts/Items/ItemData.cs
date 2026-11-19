@@ -16,6 +16,8 @@ namespace TheAlas.Items
         [Tooltip("Nilai barang antik dalam ribuan rupiah; 0 untuk suku cadang")]
         [SerializeField, Min(0)] int value;
         [SerializeField] GameObject worldPrefab;
+        [Tooltip("Gambar barang di slot inventori (ikon dari desain UI)")]
+        [SerializeField] Texture2D icon;
 
         [Header("Audio (sesuai bahan barang)")]
         [SerializeField] AudioClip[] pickupClips;
@@ -28,6 +30,7 @@ namespace TheAlas.Items
         public bool IsCarPart => isCarPart;
         public int Value => value;
         public GameObject WorldPrefab => worldPrefab;
+        public Texture2D Icon => icon;
 
         public float PickupNoise => 16f + 3f * weight;
         public float DropNoise => 26f + 4f * weight;

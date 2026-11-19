@@ -34,7 +34,7 @@ namespace TheAlas.UI
         [SerializeField] float summonDistance = 10f;
 
         // Kertas tugas (mockup 734 × 1157): posisi tulisan tiap baris, kotak, dan centangnya.
-        const float PaperWidth = 734f, PaperHeight = 1157f;
+        const float PaperWidth = 734f, PaperHeight = 1157f, MaxLabelHeight = 90f;
         static readonly Vector2[] TaskLabels = { new(310, 195), new(310, 370), new(309, 556), new(310, 715), new(309, 866) };
         static readonly Vector2 BoxOffset = new(136f - 310f, -41f), CheckOffset = new(102f - 310f, -91f);
 
@@ -121,7 +121,7 @@ namespace TheAlas.UI
         {
             if (round.IsOver)
             {
-                DrawEndScreen();
+                if (!Jumpscare.Playing) DrawEndScreen();
                 return;
             }
             if (paused)
@@ -186,7 +186,16 @@ namespace TheAlas.UI
 
                 var data = items[i].Data;
                 var inner = new Rect(rect.x + 14 * k, rect.y + 14 * k, rect.width - 28 * k, rect.height - 28 * k);
-                UiDraw.ShadowLabel(inner, $"<b>{data.DisplayName}</b>\n<size={Mathf.RoundToInt(17 * k)}>beban {Format.Number(data.Weight)}</size>", 23 * k, UiDraw.Cream);
+                if (data.Icon)
+                {
+                    // Ikon mengisi bagian atas slot; nama dan beban di bawahnya.
+                    float label = 40 * k;
+                    GUI.DrawTexture(new Rect(inner.x, inner.y, inner.width, inner.height - label), data.Icon, ScaleMode.ScaleToFit);
+                    UiDraw.ShadowLabel(new Rect(inner.x, inner.yMax - label, inner.width, label),
+                        $"<b>{data.DisplayName}</b>\n<size={Mathf.RoundToInt(14 * k)}>beban {Format.Number(data.Weight)}</size>", 17 * k, UiDraw.Cream);
+                }
+                else
+                    UiDraw.ShadowLabel(inner, $"<b>{data.DisplayName}</b>\n<size={Mathf.RoundToInt(17 * k)}>beban {Format.Number(data.Weight)}</size>", 23 * k, UiDraw.Cream);
                 UiDraw.ShadowLabel(new Rect(rect.x + 10 * k, rect.y + 6 * k, 40 * k, 30 * k), (i + 1).ToString(), 18 * k, selected ? UiDraw.Rust : UiDraw.Cream, TextAnchor.UpperLeft);
             }
         }
@@ -221,7 +230,9 @@ namespace TheAlas.UI
                 var part = parts[i];
                 Vector2 at = TaskLabels[i];
                 var label = i < skin.taskLabels.Length ? skin.taskLabels[i] : null;
-                if (label) GUI.DrawTexture(P(at.x, at.y, label.width, label.height), label);
+                // Tulisan dua baris ("FILTER OIL") diperkecil supaya tetap muat satu baris tugas.
+                float labelHeight = label ? Mathf.Min(label.height, MaxLabelHeight) : 80f;
+                if (label) GUI.DrawTexture(P(at.x, at.y, label.width * labelHeight / label.height, labelHeight), label);
 
                 var box = P(at.x + BoxOffset.x, at.y + BoxOffset.y, skin.taskBox.width, skin.taskBox.height);
                 GUI.DrawTexture(box, skin.taskBox);
@@ -232,7 +243,6 @@ namespace TheAlas.UI
                 }
 
                 // Keterangan di bawah tulisan nama: lokasi landmark, "dibawa", atau "di mobil".
-                float labelHeight = label ? label.height : 80f;
                 UiDraw.Label(P(at.x + 4f, at.y + labelHeight - 4f, PaperWidth - at.x - 40f, 46f), TaskHint(part), 34f * k, UiDraw.Ink, TextAnchor.UpperLeft, bold: true);
             }
         }
