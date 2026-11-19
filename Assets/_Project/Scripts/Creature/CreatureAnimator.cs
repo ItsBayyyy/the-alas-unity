@@ -16,9 +16,9 @@ namespace TheAlas.Creature
         static readonly int SearchingId = Animator.StringToHash("Searching");
 
         [Tooltip("Kecepatan agen (m/s) yang cocok dengan tempo asli klip gerak; lebih pelan = langkah diperlambat")]
-        [SerializeField] float clipSpeed = 3.6f;
+        [SerializeField] float clipSpeed = 2.3f; // langkah kaki klip jalan ±2,3 m/s; selisihnya terlihat sebagai kaki meluncur
         [Tooltip("Batas tempo animasi gerak")]
-        [SerializeField] Vector2 playSpeedRange = new(0.3f, 1.3f);
+        [SerializeField] Vector2 playSpeedRange = new(0.3f, 2.4f);
         [SerializeField] float damping = 0.15f;
 
         NavMeshAgent agent;
