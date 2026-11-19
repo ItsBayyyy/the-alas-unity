@@ -30,8 +30,8 @@ namespace TheAlas.UI
         [SerializeField] float loudThreshold = 38f;
         [Tooltip("Kertas tugas tampil sendiri selama ini di awal ronde, supaya pemain tahu tujuannya")]
         [SerializeField] float taskIntroDuration = 8f;
-        [Tooltip("Jarak makhluk dari pemain saat dipanggil dengan F2 (playtest)")]
-        [SerializeField] float summonDistance = 20f;
+        [Tooltip("Jarak makhluk dari pemain saat dipanggil dengan F2 (tersembunyi)")]
+        [SerializeField] float summonDistance = 10f;
 
         // Kertas tugas (mockup 734 × 1157): posisi tulisan tiap baris, kotak, dan centangnya.
         const float PaperWidth = 734f, PaperHeight = 1157f;
@@ -47,7 +47,6 @@ namespace TheAlas.UI
         bool paused;
         bool wasLocked;
         bool showDebug;
-        float summonNoticeUntil;
 
         void OnEnable() => taskUntil = Time.time + taskIntroDuration;
 
@@ -68,9 +67,10 @@ namespace TheAlas.UI
             if (keyboard.escapeKey.wasPressedThisFrame || (wasLocked && !locked)) Pause();
             wasLocked = locked;
 
+            // Tombol tersembunyi untuk demo dan playtest di build mana pun; sengaja tidak ditulis di UI.
+            if (keyboard.f2Key.wasPressedThisFrame) SummonCreature();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (keyboard.f1Key.wasPressedThisFrame) showDebug = !showDebug;
-            if (keyboard.f2Key.wasPressedThisFrame) SummonCreature();
 #endif
         }
 
@@ -104,17 +104,17 @@ namespace TheAlas.UI
         }
 
         /// <summary>
-        /// Alat playtest: memanggil makhluk ke belakang pemain supaya AI bisa diuji tanpa menunggu
-        /// ia berjalan dari ujung selatan. Kalau di belakang di luar peta, dicoba di depan.
+        /// Memanggil makhluk ke belakang pemain tanpa tanda apa pun di layar, supaya AI bisa diuji
+        /// atau didemokan tanpa menunggu ia berjalan dari ujung selatan. Kalau di belakang di luar
+        /// peta, dicoba di depan.
         /// </summary>
         void SummonCreature()
         {
             Vector3 back = Vector3.ProjectOnPlane(-viewPoint.forward, Vector3.up).normalized;
             Vector3 origin = motor.transform.position;
             const float maxSnap = 3f; // cukup untuk menghindari pohon, tapi tidak menarik ke tepi peta
-            if (creature.TeleportTo(origin + back * summonDistance, maxSnap) ||
-                creature.TeleportTo(origin - back * summonDistance, maxSnap))
-                summonNoticeUntil = Time.unscaledTime + 2f;
+            if (!creature.TeleportTo(origin + back * summonDistance, maxSnap))
+                creature.TeleportTo(origin - back * summonDistance, maxSnap);
         }
 
         void OnGUI()
@@ -140,8 +140,6 @@ namespace TheAlas.UI
             if (showTasks || Time.time < taskUntil) DrawTasks();
             if (Keyboard.current != null && Keyboard.current.tabKey.isPressed) DrawControls();
             if (showDebug) DrawDebug();
-            if (Time.unscaledTime < summonNoticeUntil)
-                UiDraw.ShadowLabel(new Rect(0, 140 * s, Screen.width, 30 * s), $"[F2] Makhluk dipanggil ke {summonDistance:0} m di belakangmu", 20 * s, UiDraw.Cream);
         }
 
         void DrawTimer(float s)
@@ -293,7 +291,7 @@ namespace TheAlas.UI
             string text =
                 $"[F1] Makhluk: {creature.State}, jarak {creature.DistanceToPlayer:0.0} m\n" +
                 $"Suara tubuh {noise.BodyNoise:0}, total {noise.Total:0}, permukaan {noise.CurrentSurface}\n" +
-                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s, lompat {motor.JumpHeight:0.00} m · F2 panggil makhluk";
+                $"Kecepatan {motor.HorizontalSpeed:0.00} m/s, lompat {motor.JumpHeight:0.00} m";
             var rect = new Rect(16, 150, 420, 70);
             UiDraw.Fill(rect, UiDraw.Panel);
             UiDraw.Label(new Rect(rect.x + 8, rect.y + 4, rect.width - 16, rect.height - 8), text, 13, UiDraw.Cream, TextAnchor.UpperLeft);

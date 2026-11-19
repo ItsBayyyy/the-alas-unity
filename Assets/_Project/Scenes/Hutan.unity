@@ -14154,7 +14154,7 @@ MonoBehaviour:
   creature: {fileID: 578311329}
   loudThreshold: 38
   taskIntroDuration: 8
-  summonDistance: 20
+  summonDistance: 10
 --- !u!114 &322838620
 MonoBehaviour:
   m_ObjectHideFlags: 0
